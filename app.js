@@ -14,7 +14,7 @@ const TARIFA_INICIAL = 0.3;
 function datosVacios() {
   return {
     version: 1,
-    ajustes: { nombre: "", correo: "", tarifa: TARIFA_INICIAL, mod: 0 },
+    ajustes: { nombre: "", correo: "", tarifa: TARIFA_INICIAL, titular: "", iban: "", mod: 0 },
     viajes: [],        // { id, fecha:"AAAA-MM-DD", destino, motivo, descripcion, km, liq: id|null }
     liquidaciones: [], // { id, fecha, viajes:[id], km, tarifa, importe, pagada: fecha|null }
     borrados: {},      // { id: momento } para sincronizar borrados entre dispositivos
@@ -254,7 +254,10 @@ function pintar() {
     f.nombre.value = datos.ajustes.nombre;
     f.correo.value = datos.ajustes.correo;
     f.tarifa.value = datos.ajustes.tarifa;
+    f.titular.value = datos.ajustes.titular;
+    f.iban.value = formatoIban(datos.ajustes.iban);
   }
+  pintarAvisoIban();
 }
 
 /* ---------- Navegación ---------- */
@@ -439,21 +442,48 @@ function seleccionados() {
   return datos.viajes.filter((v) => ids.includes(v.id)).sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
+/* ---------- IBAN ---------- */
+
+const limpiarIban = (s) => String(s || "").replace(/[^0-9a-z]/gi, "").toUpperCase();
+const formatoIban = (s) => limpiarIban(s).replace(/(.{4})(?=.)/g, "$1 ");
+
+/** Comprueba los dígitos de control del IBAN (norma ISO 13616). */
+function ibanValido(s) {
+  const iban = limpiarIban(s);
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) return false;
+  if (iban.startsWith("ES") && iban.length !== 24) return false;
+  const numeros = (iban.slice(4) + iban.slice(0, 4)).replace(/[A-Z]/g, (l) => l.charCodeAt(0) - 55);
+  let resto = 0;
+  for (const c of numeros) resto = (resto * 10 + Number(c)) % 97;
+  return resto === 1;
+}
+
+function pintarAvisoIban() {
+  const iban = datos.ajustes.iban;
+  const nota = $("#iban-aviso");
+  nota.textContent = !iban ? "" : ibanValido(iban) ? "IBAN correcto ✓" : "Revisa el IBAN: parece que falta, sobra o está cambiado algún número.";
+  nota.classList.toggle("mal", !!iban && !ibanValido(iban));
+}
+
 function textoCorreo(viajes, tarifa = datos.ajustes.tarifa) {
   const total = sumaKm(viajes);
   const lineas = viajes.map((v) => `• ${fecha(v.fecha)} · ${v.destino}${v.motivo ? " · " + v.motivo : ""} · ${km(v.km)}`
     + (v.descripcion ? `\n   ${v.descripcion.replace(/\s*\n\s*/g, " ")}` : ""));
-  const nombre = datos.ajustes.nombre;
+  const { nombre, titular, iban } = datos.ajustes;
   return {
     asunto: `Kilometraje de viajes pastorales${nombre ? " — " + nombre : ""} (${fecha(hoy())})`,
     cuerpo: [
-      "Buenos días:",
-      "",
-      "Os envío la relación de viajes pastorales pendientes de abonar:",
+      "Solicito a la administración del Seminario Metropolitano de Oviedo el pago de los gastos de gasolina de los siguientes viajes pastorales:",
       "",
       ...lineas,
       "",
       `Total: ${km(total)} × ${tarifaTxt(tarifa)} = ${euro(redondear(total * tarifa))}`,
+      ...(titular || iban ? [
+        "",
+        "Datos para la transferencia:",
+        ...(titular ? [`Titular de la cuenta: ${titular}`] : []),
+        ...(iban ? [`IBAN: ${formatoIban(iban)}`] : []),
+      ] : []),
       "",
       "Muchas gracias. Un saludo,",
       nombre,
@@ -475,7 +505,13 @@ $("#btn-pedir").addEventListener("click", () => {
       <div class="info"><b>${esc(v.destino)}</b><span>${fecha(v.fecha)}${v.motivo ? " · " + esc(v.motivo) : ""}</span></div>
       <span>${km(v.km)}</span>
     </label>`).join("");
-  $("#pedir-sin-correo").hidden = !!datos.ajustes.correo;
+  const faltan = [
+    !datos.ajustes.correo && "el correo de administración",
+    !datos.ajustes.titular && "el titular de la cuenta",
+    !datos.ajustes.iban && "el IBAN",
+  ].filter(Boolean);
+  $("#pedir-sin-correo").hidden = !faltan.length;
+  $("#pedir-faltan").textContent = faltan.join(", ").replace(/, ([^,]*)$/, " y $1");
   $("#pedir-paso1").hidden = false;
   $("#pedir-paso2").hidden = true;
   actualizarTotalPedir();
@@ -582,13 +618,18 @@ $("#form-ajustes").addEventListener("input", (e) => {
   const tarifa = parseFloat(String(f.tarifa.value).replace(",", "."));
   datos.ajustes.nombre = f.nombre.value.trim();
   datos.ajustes.correo = f.correo.value.trim();
+  datos.ajustes.titular = f.titular.value.trim();
+  datos.ajustes.iban = limpiarIban(f.iban.value);
   if (tarifa >= 0) datos.ajustes.tarifa = tarifa;
   datos.ajustes.mod = ahora();
   clearTimeout(esperaAjustes);
   esperaAjustes = setTimeout(guardar, 600); // espera a que termines de escribir
   pintarResumenAjustes();
+  pintarAvisoIban();
   $("#estado-guardado").textContent = "Guardado ✓";
 });
+// Al salir del campo, el IBAN se muestra en grupos de 4
+$("#form-ajustes").iban.addEventListener("blur", (e) => (e.target.value = formatoIban(e.target.value)));
 $("#form-ajustes").addEventListener("submit", (e) => e.preventDefault());
 
 /* ---------- Compartir ficheros ---------- */

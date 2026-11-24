@@ -99,6 +99,15 @@
         <label>Precio por kilómetro (€)
           <input name="tarifa" type="number" step="0.01" min="0" inputmode="decimal">
         </label>
+        <h3 class="subtitulo">Datos para el cobro</h3>
+        <p class="nota">Aparecen al final del correo, para que administración sepa dónde hacer la transferencia.</p>
+        <label>Titular de la cuenta
+          <input name="titular" autocomplete="name" placeholder="Nombre y apellidos">
+        </label>
+        <label>IBAN
+          <input name="iban" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ES00 0000 0000 0000 0000 0000">
+          <span class="nota-campo" id="iban-aviso"></span>
+        </label>
         <p class="nota" id="estado-guardado"></p>
       </form>
 
@@ -226,7 +235,7 @@
         <p class="nota">Elige los viajes que quieres incluir:</p>
         <div id="pedir-lista" class="lista-check"></div>
         <div class="total-pedir" id="pedir-total"></div>
-        <p class="aviso" id="pedir-sin-correo" hidden>Pon el correo de administración en <b>Ajustes</b> para que se rellene solo.</p>
+        <p class="aviso" id="pedir-sin-correo" hidden>Falta <span id="pedir-faltan"></span>. Ponlo en <b>Ajustes</b> para que aparezca en el correo.</p>
         <div class="fila-botones apilada">
           <button type="button" class="btn" id="btn-abrir-correo">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zM3 6l9 7 9-7"/></svg>

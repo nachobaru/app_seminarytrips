@@ -192,6 +192,12 @@ main { max-width: 640px; margin: 0 auto; padding: 8px 16px; }
   background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
 .formulario :is(input, textarea):disabled { opacity: .55; }
 .opcional { font-weight: 400; }
+.subtitulo { margin: 22px 0 2px; font-size: 1rem; padding-top: 18px; border-top: 1px solid var(--linea); }
+.formulario .subtitulo + .nota { margin: 0 0 14px; }
+.nota-campo { display: block; margin-top: 6px; font-weight: 500; font-size: .84rem; color: var(--acento); }
+.nota-campo:empty { display: none; }
+.nota-campo.mal { color: var(--peligro); }
+input[name=iban] { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 #viaje-bloqueado { margin: 0 0 4px; }
 #viaje-importe { margin: -6px 0 14px; }
 #viaje-importe:empty { display: none; }

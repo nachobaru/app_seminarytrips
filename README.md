@@ -4,10 +4,10 @@ Aplicación para el móvil (Android) que lleva la cuenta de los viajes pastorale
 
 - **Viajes:** apunta cada viaje con fecha, destino, motivo, kilómetros (ida y vuelta) y, si quieres, una descripción. Si ya fuiste antes a ese destino, propone los mismos kilómetros.
 - **Buscar, filtrar y ordenar:** ver los viajes pendientes, pedidos, pagados o todos; buscar por destino, motivo o descripción; filtrar por fechas, destino o motivo; y ordenar por fecha, kilómetros o destino. Debajo se ven el total de viajes, km y euros de lo filtrado.
-- **Pedir el pago:** elige los viajes pendientes y la app escribe el correo a administración con la lista y el total. Al confirmar que lo has enviado, esos viajes pasan a **Cobros**.
+- **Pedir el pago:** elige los viajes pendientes y la app escribe el correo a administración («Solicito a la administración del Seminario Metropolitano de Oviedo el pago de los gastos de gasolina…») con la lista de viajes, el total y los datos para la transferencia. Al confirmar que lo has enviado, esos viajes pasan a **Cobros**.
 - **Cobros:** cada petición aparece como «Pedido». Cuando te paguen, pulsa **Marcar como pagado** y queda registrado con la fecha.
 - **Hoja de Google:** todo se guarda solo en una hoja de cálculo de tu Google Drive.
-- **Ajustes:** tu nombre (para la firma), el correo de administración y el precio por kilómetro. Modo claro u oscuro con el botón de arriba.
+- **Ajustes:** tu nombre (para la firma), el correo de administración, el precio por kilómetro y los datos para el cobro (titular de la cuenta e IBAN). El IBAN se comprueba al escribirlo, por si te equivocas en algún número. Modo claro u oscuro con el botón de arriba.
 
 Es una aplicación web instalable (PWA): no hace falta Play Store, ocupa muy poco y funciona sin conexión.
 

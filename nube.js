@@ -146,7 +146,7 @@ const Nube = (() => {
   // Huella para comparar: mismos campos y en el mismo orden, venga de donde venga
   const porId = (l) => [...l].sort((x, y) => x.id.localeCompare(y.id));
   const huella = (d) => JSON.stringify([
-    [d.ajustes.nombre, d.ajustes.correo, d.ajustes.tarifa, d.ajustes.mod || 0],
+    [d.ajustes.nombre, d.ajustes.correo, d.ajustes.tarifa, d.ajustes.titular, d.ajustes.iban, d.ajustes.mod || 0],
     porId(d.viajes).map((v) => [v.id, v.fecha, v.destino, v.motivo || "", v.descripcion || "", v.km, v.liq || null, v.mod || 0]),
     porId(d.liquidaciones).map((l) => [l.id, l.fecha, l.km, l.tarifa, l.importe, l.pagada || null, l.mod || 0, l.viajes.join(",")]),
     Object.keys(d.borrados).sort(),
