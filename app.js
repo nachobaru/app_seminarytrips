@@ -525,6 +525,25 @@ function excelDeDatos() {
 $("#btn-excel").addEventListener("click", () =>
   compartir([new File([excelDeDatos()], `Kilometraje-${hoy()}.xlsx`, { type: TIPO_XLSX })], "Kilometraje"));
 
+/* ---------- Modo claro / oscuro ---------- */
+
+const temaOscuroMovil = matchMedia("(prefers-color-scheme: dark)");
+function aplicarTema() {
+  const elegido = document.documentElement.dataset.tema; // "claro", "oscuro" o sin elegir (sigue al móvil)
+  const efectivo = elegido || (temaOscuroMovil.matches ? "oscuro" : "claro");
+  document.documentElement.dataset.temaEfectivo = efectivo;
+  document.querySelector('meta[name="theme-color"]').content = efectivo === "oscuro" ? "#0d121b" : "#f3f6fb";
+  $("#btn-tema").setAttribute("aria-label", efectivo === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro");
+}
+$("#btn-tema").addEventListener("click", () => {
+  const nuevo = document.documentElement.dataset.temaEfectivo === "oscuro" ? "claro" : "oscuro";
+  document.documentElement.dataset.tema = nuevo;
+  try { localStorage.setItem("kilometraje.tema", nuevo); } catch (e) {}
+  aplicarTema();
+});
+temaOscuroMovil.addEventListener("change", aplicarTema);
+aplicarTema();
+
 /* ---------- Arranque ---------- */
 
 irA("viajes");
