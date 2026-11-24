@@ -2,7 +2,8 @@
 
 Aplicación para el móvil (Android) que lleva la cuenta de los viajes pastorales y de lo que te debe el seminario por la gasolina: **kilómetros × 0,30 €**.
 
-- **Viajes:** apunta cada viaje con fecha, destino, motivo y kilómetros (ida y vuelta). Si ya fuiste antes a ese destino, propone los mismos kilómetros.
+- **Viajes:** apunta cada viaje con fecha, destino, motivo, kilómetros (ida y vuelta) y, si quieres, una descripción. Si ya fuiste antes a ese destino, propone los mismos kilómetros.
+- **Buscar, filtrar y ordenar:** ver los viajes pendientes, pedidos, pagados o todos; buscar por destino, motivo o descripción; filtrar por fechas, destino o motivo; y ordenar por fecha, kilómetros o destino. Debajo se ven el total de viajes, km y euros de lo filtrado.
 - **Pedir el pago:** elige los viajes pendientes y la app escribe el correo a administración con la lista y el total. Al confirmar que lo has enviado, esos viajes pasan a **Cobros**.
 - **Cobros:** cada petición aparece como «Pedido». Cuando te paguen, pulsa **Marcar como pagado** y queda registrado con la fecha.
 - **Hoja de Google:** todo se guarda solo en una hoja de cálculo de tu Google Drive.
@@ -19,7 +20,7 @@ La hoja tiene dos pestañas:
 
 | Pestaña | Columnas |
 |---|---|
-| **Viajes** | Fecha, Destino, Motivo, Km, Importe, Estado (Pendiente, Pedido o Pagado), Pedido el, Pagado el |
+| **Viajes** | Fecha, Destino, Motivo, Km, Importe, Estado (Pendiente, Pedido o Pagado), Pedido el, Pagado el, Descripción |
 | **Cobros** | Pedido el, Nº de viajes, Km, €/km, Importe, Estado, Pagado el |
 
 Hay además unas columnas ocultas que la app necesita: no las borres. Puedes consultar, filtrar o descargar la hoja como Excel (**Archivo → Descargar**). Los cambios, en cambio, hazlos en la app: la hoja se reescribe con cada cambio, y Google avisa si intentas editarla.
@@ -32,7 +33,7 @@ Hay además unas columnas ocultas que la app necesita: no las borres. Puedes con
 
 En la hoja va un pequeño script (`google-script.gs`) publicado como «aplicación web». La app le envía los datos y él los escribe en la hoja. Solo acepta peticiones que llevan la clave secreta que la app generó al configurarlo. Esa clave va dentro del enlace «Usar en otro dispositivo», así que no compartas ese enlace con nadie.
 
-El script solo lee y escribe filas: toda la lógica está en la app. Así, las mejoras de la app no obligan a volver a pegar el script.
+El script solo lee y escribe filas: toda la lógica está en la app. Así, las mejoras de la app no obligan a volver a pegar el script. La app guarda en la hoja la lista de sus columnas y lee cada dato por su nombre. Las columnas nuevas se añaden siempre al final, porque el script oculta las columnas internas por posición.
 
 ## Instalar en el móvil
 

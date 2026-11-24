@@ -38,53 +38,85 @@ const Nube = (() => {
 
   /* ---------- Hoja ⇄ datos ---------- */
 
-  const COL_VIAJES = ["Fecha", "Destino", "Motivo", "Km", "Importe", "Estado", "Pedido el", "Pagado el", "id", "cobro", "mod"];
-  const COL_COBROS = ["Pedido el", "Viajes", "Km", "€/km", "Importe", "Estado", "Pagado el", "id", "mod", "ids viajes"];
+  // Cada columna: nombre, formato, ancho y cómo se obtiene. Las columnas nuevas van siempre al final:
+  // el script de la hoja oculta columnas por posición, así las de hojas antiguas no se descolocan.
   const F = { fecha: "dd/mm/yyyy", texto: "@", km: "#,##0.0", euro: '#,##0.00 "€"', num: "0" };
+  const COLS_VIAJES = [
+    ["Fecha", F.fecha, 90, (v) => v.fecha],
+    ["Destino", F.texto, 160, (v) => v.destino],
+    ["Motivo", F.texto, 200, (v) => v.motivo],
+    ["Km", F.km, 70, (v) => v.km],
+    ["Importe", F.euro, 90, (v, l, t) => redondear(v.km * (l ? l.tarifa : t))],
+    ["Estado", F.texto, 85, (v, l) => (l ? (l.pagada ? "Pagado" : "Pedido") : "Pendiente")],
+    ["Pedido el", F.fecha, 90, (v, l) => l?.fecha || ""],
+    ["Pagado el", F.fecha, 90, (v, l) => l?.pagada || ""],
+    ["id", F.texto, 80, (v) => v.id, "oculta"],
+    ["cobro", F.texto, 80, (v) => v.liq || "", "oculta"],
+    ["mod", F.num, 80, (v) => v.mod || 0, "oculta"],
+    ["Descripción", F.texto, 300, (v) => v.descripcion || ""],
+  ];
+  const COLS_COBROS = [
+    ["Pedido el", F.fecha, 90, (l) => l.fecha],
+    ["Viajes", F.num, 60, (l) => l.viajes.length],
+    ["Km", F.km, 80, (l) => l.km],
+    ["€/km", F.euro, 70, (l) => l.tarifa],
+    ["Importe", F.euro, 90, (l) => l.importe],
+    ["Estado", F.texto, 85, (l) => (l.pagada ? "Pagado" : "Pedido")],
+    ["Pagado el", F.fecha, 90, (l) => l.pagada || ""],
+    ["id", F.texto, 80, (l) => l.id, "oculta"],
+    ["mod", F.num, 80, (l) => l.mod || 0, "oculta"],
+    ["ids viajes", F.texto, 120, (l) => l.viajes.join(","), "oculta"],
+  ];
+  // Columnas de las hojas creadas antes de guardar su lista en la hoja
+  const COLS_ANTIGUAS = {
+    Viajes: ["Fecha", "Destino", "Motivo", "Km", "Importe", "Estado", "Pedido el", "Pagado el", "id", "cobro", "mod"],
+    Cobros: ["Pedido el", "Viajes", "Km", "€/km", "Importe", "Estado", "Pagado el", "id", "mod", "ids viajes"],
+  };
+
+  function hoja(cols, filas) {
+    return {
+      cabecera: cols.map((c) => c[0]),
+      formatos: cols.map((c) => c[1]),
+      anchos: cols.map((c) => c[2]),
+      ocultas: cols.flatMap((c, i) => (c[4] === "oculta" ? [i] : [])),
+      fechas: cols.flatMap((c, i) => (c[1] === F.fecha ? [i] : [])),
+      filas,
+    };
+  }
 
   function aHojas(d) {
     const liqPorId = new Map(d.liquidaciones.map((l) => [l.id, l]));
     const viajes = [...d.viajes].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.mod - a.mod);
     const cobros = [...d.liquidaciones].sort((a, b) => b.fecha.localeCompare(a.fecha));
     return {
-      Viajes: {
-        cabecera: COL_VIAJES,
-        formatos: [F.fecha, F.texto, F.texto, F.km, F.euro, F.texto, F.fecha, F.fecha, F.texto, F.texto, F.num],
-        anchos: [90, 160, 230, 70, 90, 85, 90, 90, 80, 80, 80],
-        ocultas: [8, 9, 10],
-        fechas: [0, 6, 7],
-        filas: viajes.map((v) => {
-          const l = liqPorId.get(v.liq);
-          const tarifa = l ? l.tarifa : d.ajustes.tarifa;
-          return [v.fecha, v.destino, v.motivo, v.km, redondear(v.km * tarifa), l ? (l.pagada ? "Pagado" : "Pedido") : "Pendiente",
-            l?.fecha || "", l?.pagada || "", v.id, v.liq || "", v.mod || 0];
-        }),
-      },
-      Cobros: {
-        cabecera: COL_COBROS,
-        formatos: [F.fecha, F.num, F.km, F.euro, F.euro, F.texto, F.fecha, F.texto, F.num, F.texto],
-        anchos: [90, 60, 80, 70, 90, 85, 90, 80, 80, 120],
-        ocultas: [7, 8, 9],
-        fechas: [0, 6],
-        filas: cobros.map((l) => [l.fecha, l.viajes.length, l.km, l.tarifa, l.importe, l.pagada ? "Pagado" : "Pedido",
-          l.pagada || "", l.id, l.mod || 0, l.viajes.join(",")]),
-      },
+      Viajes: hoja(COLS_VIAJES, viajes.map((v) => COLS_VIAJES.map((c) => c[3](v, liqPorId.get(v.liq), d.ajustes.tarifa)))),
+      Cobros: hoja(COLS_COBROS, cobros.map((l) => COLS_COBROS.map((c) => c[3](l)))),
     };
   }
 
+  /** Lee las filas por el nombre de cada columna. */
+  function porNombre(r, nombre) {
+    const cols = r.extra.columnas?.[nombre] || COLS_ANTIGUAS[nombre];
+    return (r.hojas[nombre] || []).map((f) => Object.fromEntries(cols.map((c, i) => [c, f[i] ?? ""])));
+  }
+
   function deHojas(r) {
-    const viajes = (r.hojas.Viajes || []).filter((f) => f[8]).map((f) => ({
-      id: String(f[8]), fecha: String(f[0]), destino: String(f[1]), motivo: String(f[2]),
-      km: Number(f[3]) || 0, liq: f[9] ? String(f[9]) : null, mod: Number(f[10]) || 0,
+    const viajes = porNombre(r, "Viajes").filter((f) => f.id).map((f) => ({
+      id: String(f.id), fecha: String(f.Fecha), destino: String(f.Destino), motivo: String(f.Motivo),
+      descripcion: String(f["Descripción"] ?? ""), km: Number(f.Km) || 0, liq: f.cobro ? String(f.cobro) : null, mod: Number(f.mod) || 0,
     }));
-    const liquidaciones = (r.hojas.Cobros || []).filter((f) => f[7]).map((f) => ({
-      id: String(f[7]), fecha: String(f[0]), km: Number(f[2]) || 0, tarifa: Number(f[3]) || 0, importe: Number(f[4]) || 0,
-      pagada: f[6] ? String(f[6]) : null, mod: Number(f[8]) || 0, viajes: String(f[9] || "").split(",").filter(Boolean),
+    const liquidaciones = porNombre(r, "Cobros").filter((f) => f.id).map((f) => ({
+      id: String(f.id), fecha: String(f["Pedido el"]), km: Number(f.Km) || 0, tarifa: Number(f["€/km"]) || 0, importe: Number(f.Importe) || 0,
+      pagada: f["Pagado el"] ? String(f["Pagado el"]) : null, mod: Number(f.mod) || 0, viajes: String(f["ids viajes"] || "").split(",").filter(Boolean),
     }));
     return normalizar({ viajes, liquidaciones, ajustes: r.extra.ajustes, borrados: r.extra.borrados });
   }
 
-  const extra = (d) => ({ ajustes: d.ajustes, borrados: d.borrados });
+  const extra = (d) => ({
+    ajustes: d.ajustes,
+    borrados: d.borrados,
+    columnas: { Viajes: COLS_VIAJES.map((c) => c[0]), Cobros: COLS_COBROS.map((c) => c[0]) },
+  });
 
   /* ---------- Combinar (por si se usa en dos dispositivos) ---------- */
 
@@ -115,7 +147,7 @@ const Nube = (() => {
   const porId = (l) => [...l].sort((x, y) => x.id.localeCompare(y.id));
   const huella = (d) => JSON.stringify([
     [d.ajustes.nombre, d.ajustes.correo, d.ajustes.tarifa, d.ajustes.mod || 0],
-    porId(d.viajes).map((v) => [v.id, v.fecha, v.destino, v.motivo || "", v.km, v.liq || null, v.mod || 0]),
+    porId(d.viajes).map((v) => [v.id, v.fecha, v.destino, v.motivo || "", v.descripcion || "", v.km, v.liq || null, v.mod || 0]),
     porId(d.liquidaciones).map((l) => [l.id, l.fecha, l.km, l.tarifa, l.importe, l.pagada || null, l.mod || 0, l.viajes.join(",")]),
     Object.keys(d.borrados).sort(),
   ]);

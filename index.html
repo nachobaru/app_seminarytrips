@@ -51,7 +51,27 @@
         <button class="btn btn-peq">Guardarlos en Google</button>
       </div>
 
-      <h2 class="titulo-lista">Viajes pendientes</h2>
+      <div class="herramientas">
+        <div class="segmentos" id="segmentos" role="group" aria-label="Qué viajes ver">
+          <button data-estado="pendiente" aria-pressed="true">Pendientes</button>
+          <button data-estado="pedido" aria-pressed="false">Pedidos</button>
+          <button data-estado="pagado" aria-pressed="false">Pagados</button>
+          <button data-estado="todos" aria-pressed="false">Todos</button>
+        </div>
+        <div class="fila-busqueda">
+          <label class="buscar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" id="buscar" placeholder="Buscar destino, motivo…" autocomplete="off" aria-label="Buscar">
+          </label>
+          <button class="btn-icono" id="btn-filtros" aria-label="Filtrar y ordenar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            <span class="insignia" id="n-filtros" hidden>0</span>
+          </button>
+        </div>
+      </div>
+
+      <h2 class="titulo-lista" id="titulo-viajes">Viajes pendientes</h2>
+      <p class="resumen-lista" id="resumen-lista"></p>
       <div id="lista-pendientes"></div>
       <p class="vacio" id="vacio-pendientes">Aún no hay viajes. Pulsa <b>+</b> para añadir el primero.</p>
     </section>
@@ -150,11 +170,50 @@
         <input name="km" type="number" step="0.1" min="0.1" inputmode="decimal" required placeholder="0">
       </label>
       <p class="nota" id="viaje-importe"></p>
+      <label>Descripción <span class="opcional">(opcional)</span>
+        <textarea name="descripcion" rows="2" placeholder="Detalles del viaje: con quién fuiste, qué se hizo…"></textarea>
+      </label>
+      <p class="aviso" id="viaje-bloqueado" hidden>Este viaje ya está incluido en una petición de pago, así que la fecha y los kilómetros no se pueden cambiar. Si hace falta, anula la petición en <b>Cobros</b>.</p>
       <div class="fila-botones">
         <button type="button" class="btn btn-peligro" id="btn-borrar-viaje" hidden>Borrar</button>
         <span class="hueco"></span>
         <button type="button" class="btn btn-borde" value="cancelar" data-cerrar>Cancelar</button>
         <button type="submit" class="btn" value="ok">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ DIÁLOGO: FILTRAR Y ORDENAR ============ -->
+  <dialog id="dlg-filtros" class="hoja">
+    <form id="form-filtros" class="formulario">
+      <h2>Filtrar y ordenar</h2>
+      <p class="etiqueta">Ordenar por</p>
+      <div class="opciones">
+        <button type="button" data-orden="reciente">Más recientes</button>
+        <button type="button" data-orden="antiguo">Más antiguos</button>
+        <button type="button" data-orden="mas-km">Más km</button>
+        <button type="button" data-orden="menos-km">Menos km</button>
+        <button type="button" data-orden="destino">Destino A–Z</button>
+      </div>
+      <p class="etiqueta">Fechas</p>
+      <div class="opciones">
+        <button type="button" data-periodo="todo">Todas</button>
+        <button type="button" data-periodo="este-mes">Este mes</button>
+        <button type="button" data-periodo="mes-pasado">Mes pasado</button>
+        <button type="button" data-periodo="este-anio">Este año</button>
+        <button type="button" data-periodo="anio-pasado">Año pasado</button>
+        <button type="button" data-periodo="fechas">Elegir…</button>
+      </div>
+      <div class="dos-columnas" id="filtro-fechas" hidden>
+        <label>Desde <input name="desde" type="date"></label>
+        <label>Hasta <input name="hasta" type="date"></label>
+      </div>
+      <label>Destino <select name="destino"></select></label>
+      <label>Motivo <select name="motivo"></select></label>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-borde" id="btn-limpiar-filtros">Quitar filtros</button>
+        <span class="hueco"></span>
+        <button type="submit" class="btn" id="btn-aplicar-filtros">Ver viajes</button>
       </div>
     </form>
   </dialog>

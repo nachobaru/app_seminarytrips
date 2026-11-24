@@ -68,6 +68,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-tap-highlight-color: transparent; }
 body {
   margin: 0;
@@ -77,7 +78,7 @@ body {
   line-height: 1.4;
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
-button, input { font: inherit; color: inherit; }
+button, input, textarea, select { font: inherit; color: inherit; }
 svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 .cabecera {
@@ -153,6 +154,10 @@ main { max-width: 640px; margin: 0 auto; padding: 8px 16px; }
 .info { flex: 1; min-width: 0; }
 .info b { display: block; font-weight: 650; }
 .info span { display: block; color: var(--suave); font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.info span:empty { display: none; }
+.info .desc { font-size: .82rem; opacity: .85; font-style: italic; }
+.cifra .chip { display: inline-block; margin-top: 4px; font-size: .7rem; padding: 2px 8px; }
+.liq-linea small { display: block; color: var(--suave); font-style: italic; }
 .cifra { text-align: right; flex: none; font-variant-numeric: tabular-nums; }
 .cifra b { display: block; }
 .cifra span { color: var(--suave); font-size: .85rem; }
@@ -175,12 +180,21 @@ main { max-width: 640px; margin: 0 auto; padding: 8px 16px; }
 .tarjeta { background: var(--superficie); border-radius: var(--radio); box-shadow: var(--sombra); padding: 18px; margin-bottom: 14px; }
 .tarjeta h3 { margin: 0 0 6px; }
 .formulario label { display: block; font-size: .88rem; font-weight: 600; color: var(--suave); margin-bottom: 14px; }
-.formulario input:not([type=checkbox]) {
+.formulario :is(input:not([type=checkbox]), textarea, select) {
   display: block; width: 100%; margin-top: 6px; padding: 12px 14px;
   border: 1.5px solid var(--linea); border-radius: 12px; background: var(--fondo);
   font-size: 1.05rem; font-weight: 500; color: var(--tinta);
 }
-.formulario input:focus { outline: none; border-color: var(--acento); }
+.formulario :is(input, textarea, select):focus { outline: none; border-color: var(--acento); }
+.formulario textarea { resize: vertical; min-height: 64px; line-height: 1.4; font-size: 1rem; }
+.formulario select { appearance: none; -webkit-appearance: none; font-size: 1rem;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+.formulario :is(input, textarea):disabled { opacity: .55; }
+.opcional { font-weight: 400; }
+#viaje-bloqueado { margin: 0 0 4px; }
+#viaje-importe { margin: -6px 0 14px; }
+#viaje-importe:empty { display: none; }
 .nota { color: var(--suave); font-size: .88rem; margin: 6px 0 0; }
 .aviso { background: var(--sol-claro); padding: 10px 12px; border-radius: 12px; font-size: .9rem; }
 .pie { text-align: center; color: var(--suave); font-size: .8rem; margin-top: 24px; }
@@ -276,3 +290,48 @@ a.btn { text-decoration: none; }
 .pasos code { font-size: .85em; background: var(--acento-claro); padding: 1px 5px; border-radius: 6px; }
 .formulario .pasos input { margin-top: 8px; font-size: .95rem; }
 dialog.hoja { overflow-y: auto; }
+
+/* ---------- Búsqueda, filtros y orden ---------- */
+.herramientas { margin-top: 22px; display: grid; gap: 10px; }
+.segmentos {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 3px;
+  background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra), inset 0 0 0 1px var(--linea);
+}
+.segmentos button {
+  border: 0; background: none; padding: 8px 2px; border-radius: 999px; cursor: pointer;
+  font-size: .84rem; font-weight: 650; color: var(--suave); white-space: nowrap;
+}
+.segmentos button[aria-pressed=true] { background: var(--boton); color: #fff; }
+.fila-busqueda { display: flex; gap: 8px; }
+.buscar {
+  flex: 1; display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 44px;
+  background: var(--superficie); border-radius: 999px; box-shadow: var(--sombra), inset 0 0 0 1px var(--linea); color: var(--suave);
+}
+.buscar:focus-within { box-shadow: inset 0 0 0 2px var(--acento); }
+.buscar svg { width: 18px; height: 18px; }
+.buscar input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 1rem; color: var(--tinta); }
+.btn-icono {
+  position: relative; width: 44px; height: 44px; flex: none; border: 0; border-radius: 999px; cursor: pointer;
+  display: grid; place-items: center; background: var(--superficie); color: var(--tinta); box-shadow: var(--sombra), inset 0 0 0 1px var(--linea);
+}
+.btn-icono.activo { background: var(--acento-claro); color: var(--acento); box-shadow: inset 0 0 0 1.5px var(--acento); }
+.insignia {
+  position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--boton); color: #fff; font-size: .7rem; font-weight: 800; display: grid; place-items: center;
+}
+.insignia[hidden] { display: none; }
+.resumen-lista { margin: -4px 4px 0; color: var(--suave); font-size: .86rem; }
+.resumen-lista:empty { display: none; }
+.enlace { border: 0; background: none; padding: 0; color: var(--acento); font-weight: 650; cursor: pointer; font-size: inherit; }
+.grupo-suelto { margin-top: 12px; }
+.vacio .btn { margin-top: 12px; }
+
+.etiqueta { font-size: .88rem; font-weight: 600; color: var(--suave); margin: 4px 0 8px; }
+.opciones { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.opciones button {
+  border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; font-size: .9rem; font-weight: 600;
+  background: var(--fondo); color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--linea);
+}
+.opciones button[aria-pressed=true] { background: var(--acento-claro); color: var(--acento); box-shadow: inset 0 0 0 1.5px var(--acento); }
+.dos-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dos-columnas[hidden] { display: none; }

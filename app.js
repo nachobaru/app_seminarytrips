@@ -15,7 +15,7 @@ function datosVacios() {
   return {
     version: 1,
     ajustes: { nombre: "", correo: "", tarifa: TARIFA_INICIAL, mod: 0 },
-    viajes: [],        // { id, fecha:"AAAA-MM-DD", destino, motivo, km, liq: id|null }
+    viajes: [],        // { id, fecha:"AAAA-MM-DD", destino, motivo, descripcion, km, liq: id|null }
     liquidaciones: [], // { id, fecha, viajes:[id], km, tarifa, importe, pagada: fecha|null }
     borrados: {},      // { id: momento } para sincronizar borrados entre dispositivos
   };
@@ -77,15 +77,119 @@ const sumaKm = (lista) => lista.reduce((t, v) => t + Number(v.km), 0);
 
 /* ---------- Pintar ---------- */
 
-function htmlViaje(v, etiqueta = "button") {
+const liqDe = (v) => (v.liq ? datos.liquidaciones.find((l) => l.id === v.liq) : null);
+const estadoDe = (v) => { const l = liqDe(v); return !l ? "pendiente" : l.pagada ? "pagado" : "pedido"; };
+const importeDe = (v) => redondear(v.km * (liqDe(v)?.tarifa ?? datos.ajustes.tarifa));
+const sumaImporte = (lista) => redondear(lista.reduce((t, v) => t + importeDe(v), 0));
+const sinTildes = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function htmlViaje(v, conEstado = false) {
   const d = aFecha(v.fecha);
   const dia = d.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "");
+  const estado = estadoDe(v);
+  const chip = conEstado && estado !== "pendiente" ? `<span class="chip ${estado}">${estado === "pagado" ? "Pagado" : "Pedido"}</span>` : "";
   return `
-    <${etiqueta} class="viaje" data-id="${v.id}">
+    <button class="viaje" data-id="${v.id}">
       <div class="dia"><b>${d.getDate()}</b><span>${esc(dia)}</span></div>
-      <div class="info"><b>${esc(v.destino)}</b><span>${esc(v.motivo) || "&nbsp;"}</span></div>
-      <div class="cifra"><b>${km(v.km)}</b><span>${euro(redondear(v.km * datos.ajustes.tarifa))}</span></div>
-    </${etiqueta}>`;
+      <div class="info">
+        <b>${esc(v.destino)}</b>
+        <span>${esc(v.motivo) || (v.descripcion ? "" : "&nbsp;")}</span>
+        ${v.descripcion ? `<span class="desc">${esc(v.descripcion)}</span>` : ""}
+      </div>
+      <div class="cifra"><b>${km(v.km)}</b><span>${euro(importeDe(v))}</span>${chip}</div>
+    </button>`;
+}
+
+/* ---------- Filtros y orden de la lista ---------- */
+
+const FILTRO_INICIAL = { estado: "pendiente", texto: "", periodo: "todo", desde: "", hasta: "", destino: "", motivo: "" };
+const filtro = { ...FILTRO_INICIAL, orden: "reciente" };
+try { filtro.orden = localStorage.getItem("kilometraje.orden") || "reciente"; } catch (e) {}
+
+const ORDENES = {
+  reciente: (a, b) => b.fecha.localeCompare(a.fecha) || (b.mod || 0) - (a.mod || 0),
+  antiguo: (a, b) => a.fecha.localeCompare(b.fecha) || (a.mod || 0) - (b.mod || 0),
+  "mas-km": (a, b) => b.km - a.km || b.fecha.localeCompare(a.fecha),
+  "menos-km": (a, b) => a.km - b.km || b.fecha.localeCompare(a.fecha),
+  destino: (a, b) => a.destino.localeCompare(b.destino, "es") || b.fecha.localeCompare(a.fecha),
+};
+
+function rangoPeriodo(periodo) {
+  const d = new Date();
+  const iso = (a, m, dia) => new Date(Date.UTC(a, m, dia)).toISOString().slice(0, 10);
+  const [a, m] = [d.getFullYear(), d.getMonth()];
+  switch (periodo) {
+    case "este-mes": return [iso(a, m, 1), iso(a, m + 1, 0)];
+    case "mes-pasado": return [iso(a, m - 1, 1), iso(a, m, 0)];
+    case "este-anio": return [`${a}-01-01`, `${a}-12-31`];
+    case "anio-pasado": return [`${a - 1}-01-01`, `${a - 1}-12-31`];
+    case "fechas": return [filtro.desde || "0000-01-01", filtro.hasta || "9999-12-31"];
+    default: return null;
+  }
+}
+
+/** Filtros extra activos (los del botón «Filtros»): periodo, destino y motivo. */
+const filtrosActivos = (f = filtro) => (f.periodo !== "todo" ? 1 : 0) + (f.destino ? 1 : 0) + (f.motivo ? 1 : 0);
+
+function viajesFiltrados(f = filtro) {
+  const rango = rangoPeriodo(f.periodo);
+  const palabras = sinTildes(f.texto).split(/\s+/).filter(Boolean);
+  return datos.viajes.filter((v) => {
+    if (f.estado !== "todos" && estadoDe(v) !== f.estado) return false;
+    if (rango && (v.fecha < rango[0] || v.fecha > rango[1])) return false;
+    if (f.destino && v.destino !== f.destino) return false;
+    if (f.motivo && v.motivo !== f.motivo) return false;
+    if (palabras.length) {
+      const texto = sinTildes(`${v.destino} ${v.motivo} ${v.descripcion}`);
+      if (!palabras.every((p) => texto.includes(p))) return false;
+    }
+    return true;
+  }).sort(ORDENES[f.orden] || ORDENES.reciente);
+}
+
+const TITULOS = { pendiente: "Viajes pendientes", pedido: "Viajes pedidos, sin cobrar", pagado: "Viajes pagados", todos: "Todos los viajes" };
+
+function pintarLista() {
+  const lista = viajesFiltrados();
+  const conEstado = filtro.estado === "todos";
+  $("#titulo-viajes").textContent = TITULOS[filtro.estado];
+  document.querySelectorAll("#segmentos button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.estado === filtro.estado));
+  const n = filtrosActivos();
+  $("#n-filtros").textContent = n;
+  $("#n-filtros").hidden = !n;
+  $("#btn-filtros").classList.toggle("activo", n > 0);
+
+  const hayFiltros = n > 0 || filtro.texto.trim();
+  $("#resumen-lista").innerHTML = lista.length
+    ? `${lista.length} ${lista.length === 1 ? "viaje" : "viajes"} · ${km(sumaKm(lista))} · ${euro(sumaImporte(lista))}`
+      + (hayFiltros ? ` · <button class="enlace" data-quitar-filtros>Quitar filtros</button>` : "")
+    : "";
+
+  let html;
+  if (filtro.orden === "reciente" || filtro.orden === "antiguo") {
+    const porMes = new Map();
+    for (const v of lista) {
+      const mes = aFecha(v.fecha).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+      if (!porMes.has(mes)) porMes.set(mes, []);
+      porMes.get(mes).push(v);
+    }
+    html = [...porMes].map(([mes, l]) =>
+      `<p class="mes">${esc(mes)} · ${km(sumaKm(l))}</p><div class="grupo">${l.map((v) => htmlViaje(v, conEstado)).join("")}</div>`
+    ).join("");
+  } else {
+    html = lista.length ? `<div class="grupo grupo-suelto">${lista.map((v) => htmlViaje(v, conEstado)).join("")}</div>` : "";
+  }
+  $("#lista-pendientes").innerHTML = html;
+
+  const vacio = $("#vacio-pendientes");
+  vacio.hidden = lista.length > 0;
+  if (!lista.length) {
+    vacio.innerHTML = !datos.viajes.length
+      ? "Aún no hay viajes. Pulsa <b>+</b> para añadir el primero."
+      : hayFiltros
+        ? `Ningún viaje coincide con la búsqueda.<br><button class="btn btn-borde btn-peq" data-quitar-filtros>Quitar filtros</button>`
+        : { pendiente: "No hay viajes pendientes de pedir.", pedido: "No hay viajes pedidos sin cobrar.", pagado: "Todavía no hay viajes pagados.", todos: "" }[filtro.estado];
+  }
 }
 
 function pintar() {
@@ -103,17 +207,7 @@ function pintar() {
     : "Sin viajes pendientes";
   $("#btn-pedir").disabled = !pend.length;
 
-  // Lista de pendientes agrupada por mes
-  const porMes = new Map();
-  for (const v of pend) {
-    const mes = aFecha(v.fecha).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
-    if (!porMes.has(mes)) porMes.set(mes, []);
-    porMes.get(mes).push(v);
-  }
-  $("#lista-pendientes").innerHTML = [...porMes].map(([mes, lista]) =>
-    `<p class="mes">${esc(mes)} · ${km(sumaKm(lista))}</p><div class="grupo">${lista.map((v) => htmlViaje(v)).join("")}</div>`
-  ).join("");
-  $("#vacio-pendientes").hidden = pend.length > 0;
+  pintarLista();
 
   // Liquidaciones
   const liqs = [...datos.liquidaciones].sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -135,7 +229,7 @@ function pintar() {
             : `<span class="chip pedido">Pedido</span>`}
         </div>
         <div class="liq-cuerpo">
-          ${viajes.map((v) => `<div class="liq-linea"><span>${fecha(v.fecha)} · ${esc(v.destino)}${v.motivo ? " — " + esc(v.motivo) : ""}</span><span>${km(v.km)}</span></div>`).join("")}
+          ${viajes.map((v) => `<div class="liq-linea"><span>${fecha(v.fecha)} · ${esc(v.destino)}${v.motivo ? " — " + esc(v.motivo) : ""}${v.descripcion ? `<small>${esc(v.descripcion)}</small>` : ""}</span><span>${km(v.km)}</span></div>`).join("")}
           <p class="nota">${km(l.km)} × ${tarifaTxt(l.tarifa)} = ${euro(l.importe)}</p>
           <div class="fila-botones">
             ${l.pagada
@@ -201,7 +295,12 @@ function abrirViaje(v = null) {
   fViaje.destino.value = v?.destino ?? "";
   fViaje.motivo.value = v?.motivo ?? "";
   fViaje.km.value = v?.km ?? "";
-  $("#btn-borrar-viaje").hidden = !v;
+  fViaje.descripcion.value = v?.descripcion ?? "";
+  // Un viaje ya pedido no puede cambiar de fecha ni de kilómetros (cambiaría el importe pedido)
+  const bloqueado = !!v?.liq;
+  fViaje.fecha.disabled = fViaje.km.disabled = bloqueado;
+  $("#viaje-bloqueado").hidden = !bloqueado;
+  $("#btn-borrar-viaje").hidden = !v || bloqueado;
   actualizarImporteViaje();
   dlgViaje.showModal();
   if (!v) fViaje.destino.focus();
@@ -223,12 +322,13 @@ fViaje.destino.addEventListener("change", () => {
 
 fViaje.addEventListener("submit", (e) => {
   if (e.submitter?.value !== "ok") return;
-  const kmNum = redondear(parseFloat(String(fViaje.km.value).replace(",", ".")));
+  const kmNum = editando?.liq ? editando.km : redondear(parseFloat(String(fViaje.km.value).replace(",", ".")));
   if (!(kmNum > 0)) { e.preventDefault(); return; }
   const campos = {
-    fecha: fViaje.fecha.value,
+    fecha: editando?.liq ? editando.fecha : fViaje.fecha.value,
     destino: fViaje.destino.value.trim(),
     motivo: fViaje.motivo.value.trim(),
+    descripcion: fViaje.descripcion.value.trim(),
     km: kmNum,
     mod: ahora(),
   };
@@ -253,6 +353,83 @@ $("#lista-pendientes").addEventListener("click", (e) => {
   if (b) abrirViaje(datos.viajes.find((v) => v.id === b.dataset.id));
 });
 
+/* ---------- Controles de filtro y orden ---------- */
+
+const dlgFiltros = $("#dlg-filtros");
+const fFiltros = $("#form-filtros");
+let borrador = null; // filtros que se van eligiendo en el diálogo, antes de aplicarlos
+
+$("#segmentos").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-estado]");
+  if (!b) return;
+  filtro.estado = b.dataset.estado;
+  pintarLista();
+});
+
+let esperaBusqueda;
+$("#buscar").addEventListener("input", (e) => {
+  clearTimeout(esperaBusqueda);
+  esperaBusqueda = setTimeout(() => { filtro.texto = e.target.value; pintarLista(); }, 150);
+});
+
+function quitarFiltros() {
+  Object.assign(filtro, { ...FILTRO_INICIAL, estado: filtro.estado });
+  $("#buscar").value = "";
+  pintarLista();
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-quitar-filtros]")) quitarFiltros();
+});
+
+function opcionesUnicas(campo) {
+  return [...new Set(datos.viajes.map((v) => v[campo]).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function pintarDialogoFiltros() {
+  const f = borrador;
+  fFiltros.querySelectorAll("[data-orden]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.orden === f.orden));
+  fFiltros.querySelectorAll("[data-periodo]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.periodo === f.periodo));
+  $("#filtro-fechas").hidden = f.periodo !== "fechas";
+  const n = viajesFiltrados(f).length;
+  $("#btn-aplicar-filtros").textContent = n ? `Ver ${n} ${n === 1 ? "viaje" : "viajes"}` : "Ningún viaje";
+}
+
+$("#btn-filtros").addEventListener("click", () => {
+  borrador = { ...filtro };
+  const opciones = (campo, todos) => `<option value="">${todos}</option>`
+    + opcionesUnicas(campo).map((o) => `<option${o === borrador[campo] ? " selected" : ""}>${esc(o)}</option>`).join("");
+  fFiltros.destino.innerHTML = opciones("destino", "Todos los destinos");
+  fFiltros.motivo.innerHTML = opciones("motivo", "Todos los motivos");
+  fFiltros.desde.value = borrador.desde;
+  fFiltros.hasta.value = borrador.hasta;
+  pintarDialogoFiltros();
+  dlgFiltros.showModal();
+});
+
+fFiltros.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-orden],[data-periodo]");
+  if (!b) return;
+  if (b.dataset.orden) borrador.orden = b.dataset.orden;
+  if (b.dataset.periodo) borrador.periodo = b.dataset.periodo;
+  pintarDialogoFiltros();
+});
+fFiltros.addEventListener("input", () => {
+  Object.assign(borrador, { destino: fFiltros.destino.value, motivo: fFiltros.motivo.value, desde: fFiltros.desde.value, hasta: fFiltros.hasta.value });
+  pintarDialogoFiltros();
+});
+$("#btn-limpiar-filtros").addEventListener("click", () => {
+  Object.assign(borrador, { periodo: "todo", desde: "", hasta: "", destino: "", motivo: "" });
+  fFiltros.destino.value = fFiltros.motivo.value = fFiltros.desde.value = fFiltros.hasta.value = "";
+  pintarDialogoFiltros();
+});
+fFiltros.addEventListener("submit", (e) => {
+  e.preventDefault();
+  Object.assign(filtro, borrador);
+  try { localStorage.setItem("kilometraje.orden", filtro.orden); } catch (err) {}
+  dlgFiltros.close();
+  pintarLista();
+});
+
 /* ---------- Pedir el pago ---------- */
 
 const dlgPedir = $("#dlg-pedir");
@@ -264,7 +441,8 @@ function seleccionados() {
 
 function textoCorreo(viajes, tarifa = datos.ajustes.tarifa) {
   const total = sumaKm(viajes);
-  const lineas = viajes.map((v) => `• ${fecha(v.fecha)} · ${v.destino}${v.motivo ? " · " + v.motivo : ""} · ${km(v.km)}`);
+  const lineas = viajes.map((v) => `• ${fecha(v.fecha)} · ${v.destino}${v.motivo ? " · " + v.motivo : ""} · ${km(v.km)}`
+    + (v.descripcion ? `\n   ${v.descripcion.replace(/\s*\n\s*/g, " ")}` : ""));
   const nombre = datos.ajustes.nombre;
   return {
     asunto: `Kilometraje de viajes pastorales${nombre ? " — " + nombre : ""} (${fecha(hoy())})`,
@@ -447,12 +625,12 @@ function excelDeDatos() {
   return Excel.crear([
     {
       nombre: "Viajes",
-      anchos: [12, 24, 34, 10, 12, 11, 12, 12],
-      cabecera: ["Fecha", "Destino", "Motivo", "Km", "Importe", "Estado", "Pedido el", "Pagado el"],
+      anchos: [12, 24, 30, 40, 10, 12, 11, 12, 12],
+      cabecera: ["Fecha", "Destino", "Motivo", "Descripción", "Km", "Importe", "Estado", "Pedido el", "Pagado el"],
       filas: viajes.map((v) => {
         const l = liqPorId.get(v.liq);
         const tarifa = l ? l.tarifa : datos.ajustes.tarifa;
-        return [f(v.fecha), v.destino, v.motivo, { v: v.km, f: "km" }, { v: redondear(v.km * tarifa), f: "euro" },
+        return [f(v.fecha), v.destino, v.motivo, v.descripcion || "", { v: v.km, f: "km" }, { v: redondear(v.km * tarifa), f: "euro" },
           l ? (l.pagada ? "Pagado" : "Pedido") : "Pendiente", f(l?.fecha), f(l?.pagada)];
       }),
     },
