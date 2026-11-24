@@ -38,8 +38,10 @@ const ahora = () => Date.now();
 
 /** Llama a la sincronización con OneDrive (onedrive.js) tras cada cambio. */
 let alGuardar = () => {};
+let sincronizacionAutomatica = false; // true si onedrive.js está configurado y conectado
 
 function guardar(opciones = {}) {
+  if (!opciones.sinCambios) datos.sinCopia = true;
   try {
     localStorage.setItem(CLAVE, JSON.stringify(datos));
   } catch (e) {
@@ -161,7 +163,16 @@ function pintar() {
     f.correo.value = datos.ajustes.correo;
     f.tarifa.value = datos.ajustes.tarifa;
   }
-  $("#ultima-copia").textContent = datos.ultimaCopia ? `Última copia: ${fechaLarga(datos.ultimaCopia)}` : "Todavía no has hecho ninguna copia.";
+  $("#ultima-copia").textContent = !datos.ultimaCopia ? "Todavía no has guardado ninguna copia."
+    : `Última vez: ${fechaLarga(datos.ultimaCopia)}${datos.sinCopia ? " · hay cambios sin guardar" : " · todo guardado ✓"}`;
+
+  // Recordatorio si hace tiempo que no se guarda
+  const dias = datos.ultimaCopia ? Math.floor((aFecha(hoy()) - aFecha(datos.ultimaCopia)) / 86400000) : Infinity;
+  const recordar = !sincronizacionAutomatica && datos.sinCopia && datos.viajes.length >= 3 && dias >= 14;
+  $("#recordatorio").hidden = !recordar;
+  if (recordar) $("#recordatorio-texto").textContent = datos.ultimaCopia
+    ? `Hace ${dias} días que no guardas en OneDrive.`
+    : "Aún no has guardado tus viajes en OneDrive.";
 }
 
 /* ---------- Navegación ---------- */
@@ -354,6 +365,7 @@ $("#btn-si-enviado").addEventListener("click", () => {
   guardar();
   irA("cobros");
   aviso("Petición guardada en Cobros");
+  ofrecerCopia();
 });
 
 /* ---------- Cobros ---------- */
@@ -373,6 +385,7 @@ $("#lista-liquidaciones").addEventListener("click", (e) => {
       l.pagada = hoy();
       l.mod = ahora();
       aviso(`Marcado como pagado: ${euro(l.importe)}`);
+      setTimeout(ofrecerCopia, 400);
       break;
     case "nopagada":
       l.pagada = null;
@@ -416,31 +429,58 @@ $("#form-ajustes").addEventListener("submit", (e) => e.preventDefault());
 
 /* ---------- Copia de seguridad ---------- */
 
-$("#btn-exportar").addEventListener("click", async () => {
-  datos.ultimaCopia = hoy();
-  const nombre = `kilometraje-${hoy()}.json`;
-  const fichero = new File([JSON.stringify(datos, null, 2)], nombre, { type: "application/json" });
-  try {
-    // En Android abre el menú «Compartir» (Drive, Gmail, WhatsApp…)
-    if (navigator.canShare?.({ files: [fichero] })) {
-      await navigator.share({ files: [fichero], title: "Copia de Kilometraje" });
-    } else {
-      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(fichero), download: nombre });
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+const TIPO_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+function descargarFichero(fichero) {
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(fichero), download: fichero.name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/** Comparte ficheros (en Android abre «Compartir» → OneDrive). Devuelve false si se cancela. */
+async function compartir(ficheros, titulo) {
+  if (navigator.canShare?.({ files: ficheros })) {
+    try {
+      await navigator.share({ files: ficheros, title: titulo });
+      return true;
+    } catch (e) {
+      if (e.name === "AbortError") return false;
     }
-    guardar({ sincronizar: false });
-    aviso("Copia creada");
-  } catch (e) {
-    datos = cargar(); // compartir cancelado: no anotar la copia
   }
-});
+  ficheros.forEach(descargarFichero); // ordenador o navegador sin «Compartir»
+  return true;
+}
+
+/** Excel + copia de datos, con nombres fijos para que OneDrive sustituya los anteriores. */
+async function guardarEnOneDrive() {
+  const copia = { ...datos, ultimaCopia: hoy(), sinCopia: false };
+  const ok = await compartir([
+    new File([excelDeDatos()], "Kilometraje.xlsx", { type: TIPO_XLSX }),
+    new File([JSON.stringify(copia, null, 2)], "Kilometraje-datos.json", { type: "application/json" }),
+  ], "Kilometraje");
+  if (!ok) return;
+  datos.ultimaCopia = copia.ultimaCopia;
+  datos.sinCopia = false;
+  guardar({ sinCambios: true, sincronizar: false });
+  $("#dlg-copia").close();
+  aviso("Guardado ✓");
+}
+
+function ofrecerCopia() {
+  if (!sincronizacionAutomatica) $("#dlg-copia").showModal();
+}
+
+$("#btn-exportar").addEventListener("click", guardarEnOneDrive);
+document.querySelectorAll("[data-guardar-copia]").forEach((b) => b.addEventListener("click", guardarEnOneDrive));
 
 $("#btn-importar").addEventListener("click", () => $("#fichero-importar").click());
 $("#fichero-importar").addEventListener("change", async (e) => {
   const f = e.target.files[0];
   e.target.value = "";
   if (!f) return;
+  if (/\.xlsx$/i.test(f.name)) return aviso("Elige el fichero Kilometraje-datos.json, no el Excel");
   try {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.viajes) || !Array.isArray(d.liquidaciones)) throw new Error();
@@ -482,16 +522,8 @@ function excelDeDatos() {
   ]);
 }
 
-$("#btn-excel").addEventListener("click", async () => {
-  const nombre = `Kilometraje-${hoy()}.xlsx`;
-  const fichero = new File([excelDeDatos()], nombre, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  try {
-    if (navigator.canShare?.({ files: [fichero] })) return await navigator.share({ files: [fichero], title: "Kilometraje" });
-  } catch (e) { if (e.name === "AbortError") return; }
-  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(fichero), download: nombre });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-});
+$("#btn-excel").addEventListener("click", () =>
+  compartir([new File([excelDeDatos()], `Kilometraje-${hoy()}.xlsx`, { type: TIPO_XLSX })], "Kilometraje"));
 
 /* ---------- Arranque ---------- */
 

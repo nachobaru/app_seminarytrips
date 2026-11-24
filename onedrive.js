@@ -234,7 +234,9 @@ const OneDrive = (() => {
   function pintarEstado() {
     const pill = $("#nube");
     const tarjeta = $("#tarjeta-onedrive");
-    if (!configurado()) { pill.hidden = true; tarjeta.dataset.modo = "sin-configurar"; return; }
+    if (!configurado()) { pill.hidden = true; tarjeta.hidden = true; return; }
+    tarjeta.hidden = false;
+    sincronizacionAutomatica = !!sesion;
     const conSesion = !!sesion?.refresh || (!!sesion?.access && Date.now() < sesion.caduca);
     tarjeta.dataset.modo = conSesion ? "conectado" : sesion ? "caducado" : "desconectado";
     pill.hidden = !sesion;

@@ -36,6 +36,11 @@
         </button>
       </div>
 
+      <div class="recordatorio" id="recordatorio" hidden>
+        <p id="recordatorio-texto"></p>
+        <button class="btn btn-peq" data-guardar-copia>Guardar en OneDrive</button>
+      </div>
+
       <h2 class="titulo-lista">Viajes pendientes</h2>
       <div id="lista-pendientes"></div>
       <p class="vacio" id="vacio-pendientes">Aún no hay viajes. Pulsa <b>+</b> para añadir el primero.</p>
@@ -67,7 +72,7 @@
         <p class="nota" id="estado-guardado"></p>
       </form>
 
-      <div class="tarjeta" id="tarjeta-onedrive" data-modo="sin-configurar">
+      <div class="tarjeta" id="tarjeta-onedrive" data-modo="sin-configurar" hidden>
         <h3>OneDrive</h3>
         <div class="solo-sin-configurar">
           <p class="nota">Falta configurar la conexión con OneDrive (ver el README del proyecto). Mientras tanto, los datos se guardan solo en este móvil.</p>
@@ -93,23 +98,28 @@
       </div>
 
       <div class="tarjeta">
-        <h3>Excel</h3>
-        <p class="nota">Descarga una hoja de cálculo con todos los viajes y cobros para enviarla o guardarla.</p>
-        <div class="fila-botones"><button class="btn btn-borde" id="btn-excel">Descargar Excel</button></div>
-      </div>
-
-      <div class="tarjeta">
-        <h3>Copia de seguridad</h3>
-        <p class="nota">Los datos se guardan solo en este móvil. Haz una copia de vez en cuando (por ejemplo, después de cada cobro) y guárdala en Drive o envíatela por correo.</p>
+        <h3>Guardar en OneDrive</h3>
+        <p class="nota">Guarda dos ficheros: <b>Kilometraje.xlsx</b>, para consultar los viajes y cobros en el ordenador, y <b>Kilometraje-datos.json</b>, la copia de los datos por si cambias de móvil. Al pulsar el botón, elige <b>OneDrive</b> y la carpeta que quieras (siempre la misma).</p>
         <div class="fila-botones">
-          <button class="btn" id="btn-exportar">Guardar copia</button>
-          <button class="btn btn-borde" id="btn-importar">Restaurar copia</button>
-          <input type="file" id="fichero-importar" accept="application/json,.json" hidden>
+          <button class="btn" id="btn-exportar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.5 4.3 4.3 0 0 0 7 18z"/></svg>
+            Guardar en OneDrive
+          </button>
         </div>
         <p class="nota" id="ultima-copia"></p>
       </div>
 
-      <p class="pie">Datos en tu móvil y, si lo conectas, en tu OneDrive · sin servidores de terceros</p>
+      <div class="tarjeta">
+        <h3>Otras opciones</h3>
+        <div class="fila-botones">
+          <button class="btn btn-borde" id="btn-excel">Solo el Excel</button>
+          <button class="btn btn-borde" id="btn-importar">Restaurar datos</button>
+          <input type="file" id="fichero-importar" accept="application/json,.json" hidden>
+        </div>
+        <p class="nota"><b>Restaurar datos</b> sirve para pasar todo a un móvil nuevo: abre el fichero <b>Kilometraje-datos.json</b> desde OneDrive.</p>
+      </div>
+
+      <p class="pie">Datos guardados en tu móvil y en tu OneDrive · sin servidores de terceros</p>
     </section>
   </main>
 
@@ -186,6 +196,21 @@
           <span class="hueco"></span>
           <button type="button" class="btn" id="btn-si-enviado">Sí, lo he enviado</button>
         </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ============ DIÁLOGO: OFRECER COPIA ============ -->
+  <dialog id="dlg-copia" class="hoja">
+    <div class="formulario">
+      <h2>¿Guardar en OneDrive?</h2>
+      <p class="nota" id="dlg-copia-texto">Así tendrás el Excel al día y una copia de los datos por si le pasa algo al móvil.</p>
+      <div class="fila-botones apilada">
+        <button type="button" class="btn" data-guardar-copia>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.5 4.3 4.3 0 0 0 7 18z"/></svg>
+          Guardar en OneDrive
+        </button>
+        <button type="button" class="btn btn-borde" data-cerrar>Ahora no</button>
       </div>
     </div>
   </dialog>
