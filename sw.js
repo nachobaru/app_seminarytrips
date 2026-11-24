@@ -1,7 +1,7 @@
 // Guarda la app en el móvil para que funcione sin conexión.
 // Al cambiar cualquier fichero, sube el número de VERSION.
-const VERSION = "km-4";
-const FICHEROS = ["./", "index.html", "estilo.css", "config.js", "excel.js", "app.js", "onedrive.js", "manifest.webmanifest", "icono.svg", "icono-192.png", "icono-512.png", "icono-maskable-512.png"];
+const VERSION = "km-5";
+const FICHEROS = ["./", "index.html", "estilo.css", "excel.js", "app.js", "nube.js", "google-script.gs", "manifest.webmanifest", "icono.svg", "icono-192.png", "icono-512.png", "icono-maskable-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FICHEROS)).then(() => self.skipWaiting()));

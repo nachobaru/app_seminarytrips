@@ -250,7 +250,7 @@ body:not([data-vista=viajes]) .fab { display: none; }
 .recordatorio[hidden] { display: none; }
 .recordatorio p { margin: 0; flex: 1; font-size: .92rem; font-weight: 600; }
 
-/* ---------- OneDrive (sincronización automática, si se configura) ---------- */
+/* ---------- Hoja de Google ---------- */
 .nube {
   display: inline-flex; align-items: center; gap: 6px;
   border: 0; border-radius: 999px; padding: 7px 12px; font-size: .82rem; font-weight: 650; cursor: pointer;
@@ -263,11 +263,16 @@ body:not([data-vista=viajes]) .fab { display: none; }
 .nube[data-estado=trabajando] svg { animation: latir 1s ease-in-out infinite alternate; }
 @keyframes latir { to { opacity: .3; } }
 a.btn { text-decoration: none; }
-#tarjeta-onedrive > [class*=solo-] { display: none; }
-#tarjeta-onedrive[data-modo=sin-configurar] .solo-sin-configurar,
-#tarjeta-onedrive[data-modo=desconectado] .solo-desconectado,
-#tarjeta-onedrive[data-modo=caducado] .solo-caducado,
-#tarjeta-onedrive[data-modo=conectado] .solo-conectado { display: block; }
-#tarjeta-onedrive[data-modo=conectado] .fila-botones.solo-conectado,
-#tarjeta-onedrive[data-modo=caducado] .fila-botones.solo-caducado { display: flex; }
-#tarjeta-onedrive:is([data-modo=sin-configurar], [data-modo=desconectado]) #od-estado { display: none; }
+#tarjeta-nube:not([data-modo=sin-conectar]) .solo-sin-conectar,
+#tarjeta-nube:not([data-modo=conectada]) .solo-conectada { display: none; }
+#nube-estado { margin-bottom: 4px; }
+#nube-error:empty { display: none; }
+
+.pasos { margin: 14px 0 0; padding-left: 22px; }
+.pasos > li { margin-bottom: 16px; line-height: 1.5; }
+.pasos > li::marker { font-weight: 800; color: var(--acento); }
+.pasos ul { margin: 6px 0; padding-left: 18px; }
+.pasos .btn { display: flex; width: fit-content; margin: 8px 0; }
+.pasos code { font-size: .85em; background: var(--acento-claro); padding: 1px 5px; border-radius: 6px; }
+.formulario .pasos input { margin-top: 8px; font-size: .95rem; }
+dialog.hoja { overflow-y: auto; }

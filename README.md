@@ -5,52 +5,54 @@ Aplicación para el móvil (Android) que lleva la cuenta de los viajes pastorale
 - **Viajes:** apunta cada viaje con fecha, destino, motivo y kilómetros (ida y vuelta). Si ya fuiste antes a ese destino, propone los mismos kilómetros.
 - **Pedir el pago:** elige los viajes pendientes y la app escribe el correo a administración con la lista y el total. Al confirmar que lo has enviado, esos viajes pasan a **Cobros**.
 - **Cobros:** cada petición aparece como «Pedido». Cuando te paguen, pulsa **Marcar como pagado** y queda registrado con la fecha.
-- **Ajustes:** tu nombre (para la firma), el correo de administración y el precio por kilómetro.
-- **OneDrive y Excel:** con un botón guardas en tu OneDrive un Excel con todos los viajes y cobros, y una copia de los datos.
+- **Hoja de Google:** todo se guarda solo en una hoja de cálculo de tu Google Drive.
+- **Ajustes:** tu nombre (para la firma), el correo de administración y el precio por kilómetro. Modo claro u oscuro con el botón de arriba.
 
 Es una aplicación web instalable (PWA): no hace falta Play Store, ocupa muy poco y funciona sin conexión.
 
 ## Dónde se guardan los datos
 
-**En el móvil**, siempre: la app funciona sin cobertura y no depende de ningún servidor.
+1. **En el móvil**, siempre. Por eso funciona sin cobertura.
+2. **En una hoja de Google Sheets tuya**, en cuanto la conectas (**Ajustes → Hoja de Google → Configurar**). Cada cambio se guarda solo en unos segundos. Si no hay cobertura, se guarda al volver.
 
-**En tu OneDrive**, cuando pulsas **Guardar en OneDrive** (en Ajustes). Se abre el menú *Compartir* de Android: eliges **OneDrive** y una carpeta, siempre la misma, por ejemplo `Documentos/Kilometraje`. Se guardan dos ficheros:
+La hoja tiene dos pestañas:
 
-| Fichero | Para qué |
+| Pestaña | Columnas |
 |---|---|
-| `Kilometraje.xlsx` | Hoja **Viajes** (fecha, destino, motivo, km, importe, estado, pedido el, pagado el) y hoja **Cobros**. Para consultar, filtrar o enviar desde el ordenador. |
-| `Kilometraje-datos.json` | La copia de los datos. En un móvil nuevo: **Ajustes → Restaurar datos** y abrir este fichero desde OneDrive. |
+| **Viajes** | Fecha, Destino, Motivo, Km, Importe, Estado (Pendiente, Pedido o Pagado), Pedido el, Pagado el |
+| **Cobros** | Pedido el, Nº de viajes, Km, €/km, Importe, Estado, Pagado el |
 
-Si OneDrive pregunta qué hacer porque ya existen, elige **Reemplazar**.
+Hay además unas columnas ocultas que la app necesita: no las borres. Puedes consultar, filtrar o descargar la hoja como Excel (**Archivo → Descargar**). Los cambios, en cambio, hazlos en la app: la hoja se reescribe con cada cambio, y Google avisa si intentas editarla.
 
-Para que no se te olvide, la app te ofrece guardar justo después de **pedir un pago** y de **marcar un cobro**. Además, en la pantalla de Viajes aparece un aviso si llevas más de dos semanas con cambios sin guardar.
+**Varios dispositivos:** en **Ajustes → Usar en otro dispositivo** se comparte un enlace. Al abrirlo en otro móvil o en el ordenador, queda conectado a la misma hoja. Si cambias algo en dos sitios a la vez, se combina sin perder nada.
+
+**Cambio de móvil:** instala la app en el nuevo y abre ese enlace. Si ya no tienes el móvil viejo, repite la configuración en la misma hoja: Extensiones → Apps Script, pega el código nuevo y crea una **implementación nueva**.
+
+### Cómo funciona por dentro
+
+En la hoja va un pequeño script (`google-script.gs`) publicado como «aplicación web». La app le envía los datos y él los escribe en la hoja. Solo acepta peticiones que llevan la clave secreta que la app generó al configurarlo. Esa clave va dentro del enlace «Usar en otro dispositivo», así que no compartas ese enlace con nadie.
+
+El script solo lee y escribe filas: toda la lógica está en la app. Así, las mejoras de la app no obligan a volver a pegar el script.
 
 ## Instalar en el móvil
 
-1. Abre la dirección de la app en **Chrome** en el móvil.
-2. Toca el menú **⋮** → **Añadir a pantalla de inicio** (o **Instalar aplicación**).
-3. Aparece el icono «Kilometraje» junto a tus otras aplicaciones y se abre a pantalla completa.
+1. Abre https://nachobaru.github.io/app_seminarytrips/ en **Chrome**.
+2. Menú **⋮** → **Añadir a pantalla de inicio** (o **Instalar aplicación**).
 
-## Publicarla (una sola vez)
+## Publicación
 
-En GitHub, en este repositorio: **Settings → Pages → Build and deployment → Source: Deploy from a branch**, rama `main`, carpeta `/ (root)`. En uno o dos minutos la app queda en:
-
-`https://nachobaru.github.io/app_seminarytrips/`
-
-## Sincronización automática con OneDrive (opcional, desactivada)
-
-La app incluye también una sincronización automática con OneDrive (`onedrive.js`), que ahora está desactivada. Para activarla hay que registrar la app en Microsoft Entra. Con una cuenta personal, eso exige crear antes una cuenta gratuita de Azure, que pide una tarjeta para verificar. Después se pone el *Id. de aplicación (cliente)* en `config.js` (registro con «Solo cuentas personales de Microsoft» y redirección SPA a la dirección de la app). Mientras `clientId` esté vacío, esa parte no aparece ni hace nada.
+GitHub Pages publica la rama `main` (**Settings → Pages → Deploy from a branch → `main` / root**).
 
 ## Ficheros
 
 | Fichero | Qué es |
 |---|---|
 | `index.html` | Las pantallas |
-| `estilo.css` | El diseño (claro y oscuro según el móvil) |
-| `app.js` | La lógica y el guardado de datos |
-| `onedrive.js` | Sincronización automática con OneDrive (desactivada; ver arriba) |
-| `excel.js` | Crea el fichero Excel (sin librerías externas) |
-| `config.js` | Activa la sincronización automática si se rellena |
+| `estilo.css` | El diseño (claro y oscuro) |
+| `app.js` | Viajes, cobros, correo y datos en el móvil |
+| `nube.js` | Guardado en la hoja de Google y enlace con otros dispositivos |
+| `google-script.gs` | El script que se pega en la hoja (la app pone la clave al copiarlo) |
+| `excel.js` | Crea el fichero Excel de **Ajustes → Descargar Excel** |
 | `sw.js` | Permite usarla sin conexión. Si cambias algún fichero, sube el número de `VERSION` |
 | `manifest.webmanifest`, `icono*` | Nombre e icono al instalarla |
 
