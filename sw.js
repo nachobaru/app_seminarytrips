@@ -1,6 +1,6 @@
 // Guarda la app en el móvil para que funcione sin conexión.
 // Al cambiar cualquier fichero, sube el número de VERSION.
-const VERSION = "km-8";
+const VERSION = "st-1";
 const FICHEROS = ["./", "index.html", "estilo.css", "excel.js", "app.js", "nube.js", "google-script.gs", "manifest.webmanifest", "icono.svg", "icono-192.png", "icono-512.png", "icono-maskable-512.png"];
 
 self.addEventListener("install", (e) => {

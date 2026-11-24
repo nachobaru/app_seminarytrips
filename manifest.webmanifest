@@ -1,17 +1,30 @@
 {
-  "name": "Kilometraje — viajes pastorales",
-  "short_name": "Kilometraje",
-  "description": "Registra tus viajes pastorales y pide el pago del kilometraje.",
+  "name": "Semi Trips — viajes pastorales",
+  "short_name": "Semi Trips",
+  "description": "Registra tus viajes pastorales y pide el pago de la gasolina.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f3f6fb",
+  "background_color": "#163f8f",
   "theme_color": "#1f62d1",
   "icons": [
-    { "src": "icono-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

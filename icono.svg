@@ -1,9 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b72e0"/><stop offset="1" stop-color="#163f8f"/></linearGradient></defs>
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <path d="M206 404 236 120h40l30 284z" fill="#fff" opacity=".18"/>
-  <path d="M256 150v40M256 238v44M256 330v52" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
-  <circle cx="256" cy="150" r="0" />
-  <path d="M352 112c-35 0-62 27-62 61 0 45 62 107 62 107s62-62 62-107c0-34-27-61-62-61z" fill="#f4c34f"/>
-  <circle cx="352" cy="172" r="22" fill="#163f8f"/>
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f78e6"/>
+      <stop offset="1" stop-color="#143a86"/>
+    </linearGradient>
+    <radialGradient id="luz" cx="256" cy="205" r="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="marco"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <g clip-path="url(#marco)">
+    <rect width="512" height="512" fill="url(#fondo)"/>
+    <circle cx="256" cy="205" r="210" fill="url(#luz)"/>
+    <!-- camino -->
+    <path d="M241 350C234 412 190 452 138 512H412C346 452 292 412 271 350Z" fill="#0c2a68" fill-opacity=".62"/>
+    <path d="M256 360C251 424 262 466 280 512" fill="none" stroke="#f4c34f" stroke-width="9" stroke-linecap="round" stroke-dasharray="16 20"/>
+  </g>
+  <!-- Cruz de la Victoria -->
+  <path d="M206 70H306L278 183 391 155V255L278 227 306 340H206L234 227 121 255V155L234 183Z"
+        fill="#fff" stroke="#fff" stroke-width="12" stroke-linejoin="round"/>
+  <g fill="#f4c34f" stroke="#d99a14" stroke-width="3">
+    <circle cx="256" cy="205" r="19"/>
+    <circle cx="256" cy="104" r="10"/>
+    <circle cx="256" cy="306" r="10"/>
+    <circle cx="156" cy="205" r="10"/>
+    <circle cx="356" cy="205" r="10"/>
+  </g>
 </svg>

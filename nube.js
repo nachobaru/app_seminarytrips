@@ -343,7 +343,7 @@ const Nube = (() => {
     $("#btn-nube-enlace").addEventListener("click", async () => {
       const url = enlaceOtroDispositivo();
       try {
-        if (navigator.share) await navigator.share({ title: "Enlazar Kilometraje", text: "Abre este enlace en el otro dispositivo para enlazarlo con tu hoja:", url });
+        if (navigator.share) await navigator.share({ title: "Enlazar Semi Trips", text: "Abre este enlace en el otro dispositivo para enlazarlo con tu hoja:", url });
         else { await navigator.clipboard.writeText(url); aviso("Enlace copiado. Ábrelo en el otro dispositivo."); }
       } catch (e) { /* cancelado */ }
     });

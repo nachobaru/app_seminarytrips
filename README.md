@@ -1,4 +1,4 @@
-# Kilometraje · viajes pastorales
+# Semi Trips · viajes pastorales
 
 Aplicación para el móvil (Android) que lleva la cuenta de los viajes pastorales y de lo que te debe el seminario por la gasolina: **kilómetros × 0,30 €**.
 
@@ -8,6 +8,8 @@ Aplicación para el móvil (Android) que lleva la cuenta de los viajes pastorale
 - **Cobros:** cada petición aparece como «Pedido». Cuando te paguen, pulsa **Marcar como pagado** y queda registrado con la fecha.
 - **Hoja de Google:** todo se guarda solo en una hoja de cálculo de tu Google Drive.
 - **Ajustes:** tu nombre (para la firma), el correo de administración, el precio por kilómetro y los datos para el cobro (titular de la cuenta e IBAN). El IBAN se comprueba al escribirlo, por si te equivocas en algún número. Modo claro u oscuro con el botón de arriba.
+
+El logo es una **Cruz de la Victoria** (la de Asturias y Oviedo) de la que sale un camino: la cruz y el trayecto. Al abrir la app aparece una breve pantalla de arranque, los importes cuentan hasta su cifra y las listas y ventanas entran con suavidad. Si el móvil tiene activada la opción de reducir movimiento, la app no anima nada.
 
 Es una aplicación web instalable (PWA): no hace falta Play Store, ocupa muy poco y funciona sin conexión.
 
@@ -55,6 +57,6 @@ GitHub Pages publica la rama `main` (**Settings → Pages → Deploy from a bran
 | `google-script.gs` | El script que se pega en la hoja (la app pone la clave al copiarlo) |
 | `excel.js` | Crea el fichero Excel de **Ajustes → Descargar Excel** |
 | `sw.js` | Permite usarla sin conexión. Si cambias algún fichero, sube el número de `VERSION` |
-| `manifest.webmanifest`, `icono*` | Nombre e icono al instalarla |
+| `manifest.webmanifest`, `icono*` | Nombre e icono al instalarla. `icono.svg` es el logo original; los PNG se generan a partir de él |
 
 Para probarla en el ordenador: `python3 -m http.server` en esta carpeta y abrir http://localhost:8000.

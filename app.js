@@ -1,7 +1,7 @@
 "use strict";
 
 /* =========================================================
-   Kilometraje — viajes pastorales
+   Semi Trips — viajes pastorales
    Los datos se guardan en el móvil (localStorage) y, si se conecta,
    en una hoja de Google Sheets (nube.js).
    ========================================================= */
@@ -72,6 +72,41 @@ function esc(s) {
 }
 
 const $ = (s) => document.querySelector(s);
+
+/* ---------- Animaciones ---------- */
+
+const sinMovimiento = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+let arrancado = false;   // hasta que termina el primer pintado, nada se anima
+let ultimoViaje = null;  // viaje recién guardado, para destacarlo un momento
+let ultimoPagado = null; // cobro recién marcado como pagado
+
+/** Cambia una cifra en euros contando desde la anterior (o desde `desde`). */
+function contar(el, nuevo, desde = el._valor) {
+  cancelAnimationFrame(el._raf);
+  el._valor = nuevo;
+  if (!arrancado || desde === undefined || desde === nuevo || sinMovimiento() || document.hidden) {
+    el.textContent = euro(nuevo);
+    return;
+  }
+  const t0 = performance.now(), dur = 650;
+  const paso = (t) => {
+    const k = Math.min(1, (t - t0) / dur);
+    el.textContent = euro(k < 1 ? redondear(desde + (nuevo - desde) * (1 - Math.pow(1 - k, 3))) : nuevo);
+    if (k < 1) el._raf = requestAnimationFrame(paso);
+  };
+  el._raf = requestAnimationFrame(paso);
+}
+
+/** Las filas de una lista entran una tras otra (solo las primeras, para no alargarlo). */
+function animarLista(cont) {
+  if (!cont || sinMovimiento()) return;
+  cont.classList.remove("lista-anima");
+  cont.querySelectorAll(".mes, .viaje, .liq").forEach((el, i) => el.style.setProperty("--i", Math.min(i, 9)));
+  void cont.offsetWidth; // reinicia la animación si ya estaba puesta
+  cont.classList.add("lista-anima");
+  clearTimeout(cont._fin);
+  cont._fin = setTimeout(() => cont.classList.remove("lista-anima"), 1000);
+}
 const pendientes = () => datos.viajes.filter((v) => !v.liq).sort((a, b) => b.fecha.localeCompare(a.fecha));
 const sumaKm = (lista) => lista.reduce((t, v) => t + Number(v.km), 0);
 
@@ -89,7 +124,7 @@ function htmlViaje(v, conEstado = false) {
   const estado = estadoDe(v);
   const chip = conEstado && estado !== "pendiente" ? `<span class="chip ${estado}">${estado === "pagado" ? "Pagado" : "Pedido"}</span>` : "";
   return `
-    <button class="viaje" data-id="${v.id}">
+    <button class="viaje${v.id === ultimoViaje ? " destello" : ""}" data-id="${v.id}">
       <div class="dia"><b>${d.getDate()}</b><span>${esc(dia)}</span></div>
       <div class="info">
         <b>${esc(v.destino)}</b>
@@ -149,7 +184,7 @@ function viajesFiltrados(f = filtro) {
 
 const TITULOS = { pendiente: "Viajes pendientes", pedido: "Viajes pedidos, sin cobrar", pagado: "Viajes pagados", todos: "Todos los viajes" };
 
-function pintarLista() {
+function pintarLista(animar = false) {
   const lista = viajesFiltrados();
   const conEstado = filtro.estado === "todos";
   $("#titulo-viajes").textContent = TITULOS[filtro.estado];
@@ -181,6 +216,9 @@ function pintarLista() {
   }
   $("#lista-pendientes").innerHTML = html;
 
+  ultimoViaje = null;
+  if (animar) animarLista($("#lista-pendientes"));
+
   const vacio = $("#vacio-pendientes");
   vacio.hidden = lista.length > 0;
   if (!lista.length) {
@@ -201,7 +239,7 @@ function pintar() {
   $("#saludo").textContent = datos.ajustes.nombre ? `Viajes pastorales de ${datos.ajustes.nombre}` : "Viajes pastorales";
 
   // Resumen
-  $("#res-importe").textContent = euro(redondear(totalKm * t));
+  contar($("#res-importe"), redondear(totalKm * t));
   $("#res-detalle").textContent = pend.length
     ? `${pend.length} ${pend.length === 1 ? "viaje" : "viajes"} · ${km(totalKm)} × ${tarifaTxt(t)}`
     : "Sin viajes pendientes";
@@ -212,8 +250,8 @@ function pintar() {
   // Liquidaciones
   const liqs = [...datos.liquidaciones].sort((a, b) => b.fecha.localeCompare(a.fecha));
   const anio = String(new Date().getFullYear());
-  $("#mini-solicitado").textContent = euro(liqs.filter((l) => !l.pagada).reduce((s, l) => s + l.importe, 0));
-  $("#mini-cobrado").textContent = euro(liqs.filter((l) => l.pagada?.startsWith(anio)).reduce((s, l) => s + l.importe, 0));
+  contar($("#mini-solicitado"), redondear(liqs.filter((l) => !l.pagada).reduce((s, l) => s + l.importe, 0)));
+  contar($("#mini-cobrado"), redondear(liqs.filter((l) => l.pagada?.startsWith(anio)).reduce((s, l) => s + l.importe, 0)));
   $("#vacio-liquidaciones").hidden = liqs.length > 0;
   $("#lista-liquidaciones").innerHTML = liqs.map((l) => {
     const viajes = l.viajes.map((id) => datos.viajes.find((v) => v.id === id)).filter(Boolean).sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -225,10 +263,10 @@ function pintar() {
             <span>Pedido el ${fecha(l.fecha)} · ${viajes.length} ${viajes.length === 1 ? "viaje" : "viajes"} · ${km(l.km)}</span>
           </div>
           ${l.pagada
-            ? `<span class="chip pagado">Pagado ${fecha(l.pagada)}</span>`
+            ? `<span class="chip pagado${l.id === ultimoPagado ? " nuevo" : ""}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Pagado ${fecha(l.pagada)}</span>`
             : `<span class="chip pedido">Pedido</span>`}
         </div>
-        <div class="liq-cuerpo">
+        <div class="liq-cuerpo"><div class="liq-int"><div class="liq-pad">
           ${viajes.map((v) => `<div class="liq-linea"><span>${fecha(v.fecha)} · ${esc(v.destino)}${v.motivo ? " — " + esc(v.motivo) : ""}${v.descripcion ? `<small>${esc(v.descripcion)}</small>` : ""}</span><span>${km(v.km)}</span></div>`).join("")}
           <p class="nota">${km(l.km)} × ${tarifaTxt(l.tarifa)} = ${euro(l.importe)}</p>
           <div class="fila-botones">
@@ -239,9 +277,11 @@ function pintar() {
             <span class="hueco"></span>
             ${l.pagada ? "" : `<button class="btn btn-peligro btn-peq" data-accion="deshacer">Anular</button>`}
           </div>
-        </div>
+        </div></div></div>
       </article>`;
   }).join("");
+
+  ultimoPagado = null;
 
   // Sugerencias para destino y motivo
   const unicos = (campo) => [...new Set(datos.viajes.map((v) => v[campo]).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
@@ -263,10 +303,18 @@ function pintar() {
 /* ---------- Navegación ---------- */
 
 function irA(vista) {
+  const cambia = arrancado && document.body.dataset.vista !== vista;
   document.body.dataset.vista = vista;
   document.querySelectorAll(".vista").forEach((s) => s.classList.toggle("activa", s.id === "vista-" + vista));
   document.querySelectorAll(".barra button").forEach((b) => b.classList.toggle("activa", b.dataset.vista === vista));
   window.scrollTo(0, 0);
+  if (cambia) {
+    // Al cambiar de pestaña, las filas entran y las cifras cuentan desde cero
+    const cifras = vista === "viajes" ? ["#res-importe"] : vista === "cobros" ? ["#mini-solicitado", "#mini-cobrado"] : [];
+    cifras.forEach((s) => { const el = $(s); contar(el, el._valor ?? 0, 0); });
+    if (vista === "viajes") animarLista($("#lista-pendientes"));
+    if (vista === "cobros") animarLista($("#lista-liquidaciones"));
+  }
 }
 document.querySelectorAll(".barra button").forEach((b) => b.addEventListener("click", () => irA(b.dataset.vista)));
 document.querySelectorAll("[data-cerrar]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
@@ -335,8 +383,8 @@ fViaje.addEventListener("submit", (e) => {
     km: kmNum,
     mod: ahora(),
   };
-  if (editando) Object.assign(editando, campos);
-  else datos.viajes.push({ id: nuevoId(), liq: null, ...campos });
+  if (editando) { Object.assign(editando, campos); ultimoViaje = editando.id; }
+  else { ultimoViaje = nuevoId(); datos.viajes.push({ id: ultimoViaje, liq: null, ...campos }); }
   guardar();
   aviso(editando ? "Viaje actualizado" : "Viaje guardado");
 });
@@ -366,7 +414,7 @@ $("#segmentos").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-estado]");
   if (!b) return;
   filtro.estado = b.dataset.estado;
-  pintarLista();
+  pintarLista(true);
 });
 
 let esperaBusqueda;
@@ -378,7 +426,7 @@ $("#buscar").addEventListener("input", (e) => {
 function quitarFiltros() {
   Object.assign(filtro, { ...FILTRO_INICIAL, estado: filtro.estado });
   $("#buscar").value = "";
-  pintarLista();
+  pintarLista(true);
 }
 document.addEventListener("click", (e) => {
   if (e.target.closest("[data-quitar-filtros]")) quitarFiltros();
@@ -430,7 +478,7 @@ fFiltros.addEventListener("submit", (e) => {
   Object.assign(filtro, borrador);
   try { localStorage.setItem("kilometraje.orden", filtro.orden); } catch (err) {}
   dlgFiltros.close();
-  pintarLista();
+  pintarLista(true);
 });
 
 /* ---------- Pedir el pago ---------- */
@@ -585,6 +633,7 @@ $("#lista-liquidaciones").addEventListener("click", (e) => {
     case "pagada":
       l.pagada = hoy();
       l.mod = ahora();
+      ultimoPagado = l.id;
       aviso(`Marcado como pagado: ${euro(l.importe)}`);
       break;
     case "nopagada":
@@ -686,7 +735,7 @@ function excelDeDatos() {
 }
 
 $("#btn-excel").addEventListener("click", () =>
-  compartir([new File([excelDeDatos()], `Kilometraje-${hoy()}.xlsx`, { type: TIPO_XLSX })], "Kilometraje"));
+  compartir([new File([excelDeDatos()], `Kilometraje-${hoy()}.xlsx`, { type: TIPO_XLSX })], "Semi Trips"));
 
 /* ---------- Modo claro / oscuro ---------- */
 
@@ -702,6 +751,10 @@ $("#btn-tema").addEventListener("click", () => {
   const nuevo = document.documentElement.dataset.temaEfectivo === "oscuro" ? "claro" : "oscuro";
   document.documentElement.dataset.tema = nuevo;
   try { localStorage.setItem("kilometraje.tema", nuevo); } catch (e) {}
+  // Durante un instante, los colores se funden en lugar de saltar
+  document.documentElement.classList.add("cambiando-tema");
+  clearTimeout(aplicarTema.fin);
+  aplicarTema.fin = setTimeout(() => document.documentElement.classList.remove("cambiando-tema"), 450);
   aplicarTema();
 });
 temaOscuroMovil.addEventListener("change", aplicarTema);
@@ -711,6 +764,17 @@ aplicarTema();
 
 irA("viajes");
 pintar();
+arrancado = true;
+
+// Pantalla de arranque: se quita sola al terminar su animación, y se salta tocándola
+const pantallaArranque = $("#arranque");
+if (pantallaArranque) {
+  const quitar = () => pantallaArranque.remove();
+  pantallaArranque.addEventListener("animationend", (e) => { if (e.animationName === "arranque-fuera") quitar(); });
+  pantallaArranque.addEventListener("click", () => pantallaArranque.classList.add("salta"));
+  if (sinMovimiento()) quitar();
+  setTimeout(quitar, 3000); // por si acaso
+}
 
 // Pide al navegador que no borre los datos si falta espacio
 navigator.storage?.persist?.();

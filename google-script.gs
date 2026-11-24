@@ -1,5 +1,5 @@
 /**
- * Kilometraje · enlace con esta hoja de cálculo.
+ * Semi Trips · enlace con esta hoja de cálculo.
  *
  * Pega este código en Extensiones → Apps Script de tu hoja y publícalo como
  * «Aplicación web» (ver la app: Ajustes → Hoja de Google → Configurar).
@@ -36,7 +36,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput("Kilometraje: el enlace con la hoja funciona. Vuelve a la app.");
+  return ContentService.createTextOutput("Semi Trips: el enlace con la hoja funciona. Vuelve a la app.");
 }
 
 function leer(version, props) {
@@ -77,7 +77,7 @@ function escribirHoja(nombre, h) {
 
   if (!hoja.getFilter()) hoja.getRange(1, 1, hoja.getMaxRows(), columnas).createFilter();
   if (!hoja.getProtections(SpreadsheetApp.ProtectionType.SHEET).length) {
-    hoja.protect().setDescription("Los cambios se hacen en la app Kilometraje").setWarningOnly(true);
+    hoja.protect().setDescription("Los cambios se hacen en la app Semi Trips").setWarningOnly(true);
   }
 }
 

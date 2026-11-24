@@ -8,18 +8,33 @@
   <script>
     // Aplica el tema elegido antes de pintar, para que no parpadee
     try { const t = localStorage.getItem("kilometraje.tema"); if (t) document.documentElement.dataset.tema = t; } catch (e) {}
+    // La pantalla de arranque solo se ve al abrir la app, no en cada recarga de la misma sesión
+    try {
+      if (sessionStorage.getItem("st.arranque") || matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.dataset.arranque = "no";
+      sessionStorage.setItem("st.arranque", "1");
+    } catch (e) {}
   </script>
-  <title>Kilometraje</title>
+  <title>Semi Trips</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icono.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icono-192.png">
   <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
+  <!-- ============ PANTALLA DE ARRANQUE ============ -->
+  <div class="arranque" id="arranque" aria-hidden="true">
+    <img class="arranque-logo" src="icono.svg" alt="" width="132" height="132">
+    <p class="arranque-nombre"><span>Semi</span> <span>Trips</span></p>
+    <p class="arranque-lema">Viajes pastorales</p>
+  </div>
+
   <header class="cabecera">
-    <div>
-      <h1>Kilometraje</h1>
-      <p class="sub" id="saludo">Viajes pastorales</p>
+    <div class="marca">
+      <img class="logo" src="icono.svg" alt="" width="44" height="44">
+      <div>
+        <h1>Semi <span>Trips</span></h1>
+        <p class="sub" id="saludo">Viajes pastorales</p>
+      </div>
     </div>
     <div class="acciones-cabecera">
       <button class="nube" id="nube" hidden>
@@ -268,7 +283,7 @@
       </div>
       <ol class="pasos">
         <li>
-          <b>Crea una hoja nueva</b> en tu Google Drive y ponle de nombre <i>Kilometraje</i>.
+          <b>Crea una hoja nueva</b> en tu Google Drive y ponle de nombre <i>Semi Trips</i>.
           <a class="btn btn-borde btn-peq" href="https://sheets.new" target="_blank" rel="noopener">Crear hoja</a>
         </li>
         <li>
@@ -282,7 +297,7 @@
             <li>Ejecutar como: <b>Yo</b></li>
             <li>Quién tiene acceso: <b>Cualquier usuario</b></li>
           </ul>
-          Pulsa <b>Implementar</b> y <b>Autorizar acceso</b>, y elige tu cuenta. Google avisará de que la app no está verificada, porque es tuya y no la ha revisado Google: pulsa <b>Configuración avanzada → Ir a Kilometraje</b> y <b>Permitir</b>.
+          Pulsa <b>Implementar</b> y <b>Autorizar acceso</b>, y elige tu cuenta. Google avisará de que la app no está verificada, porque es tuya y no la ha revisado Google: pulsa <b>Configuración avanzada → Ir a Semi Trips</b> (o al nombre del proyecto que veas) y <b>Permitir</b>.
         </li>
         <li>
           Copia la <b>URL de la aplicación web</b> (acaba en <code>/exec</code>) y pégala aquí:
