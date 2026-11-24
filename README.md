@@ -27,7 +27,7 @@ Hay además unas columnas ocultas que la app necesita: no las borres. Puedes con
 
 **Varios dispositivos:** en **Ajustes → Usar en otro dispositivo** se comparte un enlace. Al abrirlo en otro móvil o en el ordenador, queda conectado a la misma hoja. Si cambias algo en dos sitios a la vez, se combina sin perder nada.
 
-**Cambio de móvil:** instala la app en el nuevo y abre ese enlace. Si ya no tienes el móvil viejo, repite la configuración en la misma hoja: Extensiones → Apps Script, pega el código nuevo y crea una **implementación nueva**.
+**Cambio de móvil:** instala la app en el nuevo y abre ese enlace. Si en el asistente ves «Esta hoja ya está configurada con la clave de otro dispositivo», no repitas los pasos: usa el enlace, o pega la clave que aparece en la línea `const CLAVE = "…"` del script (Extensiones → Apps Script). Si ya no tienes el móvil viejo, repite la configuración en la misma hoja: Extensiones → Apps Script, pega el código nuevo y crea una **implementación nueva**.
 
 ### Cómo funciona por dentro
 

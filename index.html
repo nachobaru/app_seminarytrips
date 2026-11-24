@@ -262,6 +262,10 @@
     <form id="form-nube" class="formulario">
       <h2>Conectar una hoja de Google</h2>
       <p class="nota">Se hace una sola vez. Es más cómodo desde el ordenador: abre allí esta misma app y, al terminar, pulsa «Usar en otro dispositivo» para pasarla al móvil.</p>
+      <div class="caja-ayuda">
+        <b>¿Ya la configuraste en otro dispositivo?</b>
+        No repitas los pasos. En ese dispositivo ve a <b>Ajustes → Usar en otro dispositivo</b>, envíate el enlace y ábrelo aquí: queda conectado al momento. Si prefieres, pega el enlace en el recuadro del paso 4.
+      </div>
       <ol class="pasos">
         <li>
           <b>Crea una hoja nueva</b> en tu Google Drive y ponle de nombre <i>Kilometraje</i>.
@@ -282,9 +286,14 @@
         </li>
         <li>
           Copia la <b>URL de la aplicación web</b> (acaba en <code>/exec</code>) y pégala aquí:
-          <input name="url" type="url" required placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+          <input name="url" type="text" inputmode="url" required placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false">
         </li>
       </ol>
+      <details class="ya-configurada">
+        <summary>Ya la tengo configurada y no puedo usar el enlace</summary>
+        <p class="nota">En la hoja: <b>Extensiones → Apps Script</b>. Arriba del código verás una línea <code>const CLAVE = "…"</code>. Copia el texto entre comillas y pégalo aquí; en el paso 4 pega la URL de la aplicación web de siempre.</p>
+        <input name="clave" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Clave de la hoja">
+      </details>
       <p class="aviso" id="nube-error" role="alert"></p>
       <div class="fila-botones">
         <button type="button" class="btn btn-borde" data-cerrar>Cancelar</button>

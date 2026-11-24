@@ -341,3 +341,9 @@ dialog.hoja { overflow-y: auto; }
 .opciones button[aria-pressed=true] { background: var(--acento-claro); color: var(--acento); box-shadow: inset 0 0 0 1.5px var(--acento); }
 .dos-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .dos-columnas[hidden] { display: none; }
+
+.caja-ayuda { background: var(--acento-claro); border-radius: 14px; padding: 12px 14px; font-size: .92rem; line-height: 1.45; margin: 4px 0 10px; }
+.caja-ayuda b:first-child { display: block; color: var(--acento); margin-bottom: 2px; }
+.ya-configurada { margin: 4px 0 14px; font-size: .92rem; }
+.ya-configurada summary { cursor: pointer; color: var(--acento); font-weight: 650; padding: 6px 0; }
+.ya-configurada code { font-size: .85em; background: var(--acento-claro); padding: 1px 5px; border-radius: 6px; }

@@ -220,13 +220,23 @@ const Nube = (() => {
       r = await llamar(url, clave, { accion: "leer" });
     } catch (e) {
       throw new Error(e.message === "clave"
-        ? "La hoja responde, pero con otro código. Vuelve a copiar el código del paso 2 y crea una implementación nueva."
-        : "No se ha podido conectar. Revisa que en «Quién tiene acceso» pusiste «Cualquier usuario».");
+        ? "Esta hoja ya está configurada con la clave de otro dispositivo. No hace falta repetir los pasos: abre en este móvil el enlace de «Ajustes → Usar en otro dispositivo» del que ya la tiene (y pégalo en el recuadro de arriba), o escribe la clave en «Ya la tengo configurada»."
+        : "No se ha podido conectar. Revisa que en «Quién tiene acceso» pusiste «Cualquier usuario» y que la dirección acaba en /exec.");
     }
     conf = { url, clave, version: r.version, hojaUrl: r.url };
     guardarConf();
     localStorage.removeItem("kilometraje.claveNueva");
     await sincronizar();
+  }
+
+  /** Saca la dirección y la clave de un enlace de «otro dispositivo» (pegado entero o solo la parte final). */
+  function desdeEnlace(texto) {
+    const m = String(texto).match(/enlazar=([^&\s]+)/);
+    if (!m) return null;
+    try {
+      const { u, k } = JSON.parse(atob(decodeURIComponent(m[1])));
+      return u && k ? { url: u, clave: k } : null;
+    } catch (e) { return null; }
   }
 
   function enlaceOtroDispositivo() {
@@ -314,7 +324,10 @@ const Nube = (() => {
       boton.textContent = "Conectando…";
       $("#nube-error").textContent = "";
       try {
-        await conectar(e.target.url.value, claveNueva());
+        const pegado = e.target.url.value.trim();
+        const enlace = desdeEnlace(pegado);
+        const claveManual = e.target.clave.value.trim();
+        await conectar(enlace ? enlace.url : pegado, enlace ? enlace.clave : claveManual || claveNueva());
         dlg.close();
         aviso("Conectado con tu hoja de Google ✓");
       } catch (err) {
