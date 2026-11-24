@@ -49,6 +49,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
   padding: calc(18px + env(safe-area-inset-top)) 20px 6px;
   max-width: 640px; margin: 0 auto;
 }
+.cabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .cabecera h1 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
 .sub { margin: 2px 0 0; color: var(--suave); font-size: .95rem; }
 
@@ -197,3 +198,29 @@ body:not([data-vista=viajes]) .fab { display: none; }
   font-size: .92rem; font-weight: 600; transition: .2s; max-width: calc(100% - 32px); text-align: center;
 }
 .aviso-flotante.ver { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- OneDrive ---------- */
+.nube {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+  border: 0; border-radius: 999px; padding: 7px 12px; font-size: .82rem; font-weight: 650; cursor: pointer;
+  background: var(--verde-claro); color: var(--verde);
+}
+.nube[hidden] { display: none; }
+.nube svg { width: 18px; height: 18px; }
+.nube[data-estado=aviso] { background: var(--sol-claro); color: #8a6200; }
+.nube[data-estado=error] { background: #fbe4df; color: var(--peligro); }
+.nube[data-estado=trabajando] svg { animation: latir 1s ease-in-out infinite alternate; }
+@keyframes latir { to { opacity: .3; } }
+@media (prefers-color-scheme: dark) {
+  .nube[data-estado=aviso] { color: var(--sol); }
+  .nube[data-estado=error] { background: #3a201b; }
+}
+a.btn { text-decoration: none; }
+#tarjeta-onedrive > [class*=solo-] { display: none; }
+#tarjeta-onedrive[data-modo=sin-configurar] .solo-sin-configurar,
+#tarjeta-onedrive[data-modo=desconectado] .solo-desconectado,
+#tarjeta-onedrive[data-modo=caducado] .solo-caducado,
+#tarjeta-onedrive[data-modo=conectado] .solo-conectado { display: block; }
+#tarjeta-onedrive[data-modo=conectado] .fila-botones.solo-conectado,
+#tarjeta-onedrive[data-modo=caducado] .fila-botones.solo-caducado { display: flex; }
+#tarjeta-onedrive:is([data-modo=sin-configurar], [data-modo=desconectado]) #od-estado { display: none; }

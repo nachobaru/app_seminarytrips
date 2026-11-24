@@ -13,8 +13,14 @@
 </head>
 <body>
   <header class="cabecera">
-    <h1>Kilometraje</h1>
-    <p class="sub" id="saludo">Viajes pastorales</p>
+    <div>
+      <h1>Kilometraje</h1>
+      <p class="sub" id="saludo">Viajes pastorales</p>
+    </div>
+    <button class="nube" id="nube" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.5 4.3 4.3 0 0 0 7 18z"/></svg>
+      <span id="nube-texto">OneDrive</span>
+    </button>
   </header>
 
   <main>
@@ -61,6 +67,37 @@
         <p class="nota" id="estado-guardado"></p>
       </form>
 
+      <div class="tarjeta" id="tarjeta-onedrive" data-modo="sin-configurar">
+        <h3>OneDrive</h3>
+        <div class="solo-sin-configurar">
+          <p class="nota">Falta configurar la conexión con OneDrive (ver el README del proyecto). Mientras tanto, los datos se guardan solo en este móvil.</p>
+        </div>
+        <div class="solo-desconectado">
+          <p class="nota">Guarda tus viajes en tu OneDrive para no perderlos, tenerlos en varios dispositivos y consultarlos en Excel desde el ordenador.</p>
+          <div class="fila-botones"><button class="btn" id="btn-od-conectar">Conectar con OneDrive</button></div>
+        </div>
+        <div class="solo-caducado">
+          <div class="fila-botones"><button class="btn" id="btn-od-reconectar">Volver a conectar</button></div>
+        </div>
+        <div class="solo-conectado">
+          <div class="fila-botones">
+            <a class="btn" id="od-excel" target="_blank" rel="noopener" hidden>Abrir el Excel</a>
+            <button class="btn btn-borde" id="btn-od-sync">Sincronizar ahora</button>
+          </div>
+          <p class="nota">Los ficheros están en tu OneDrive, en <b>Aplicaciones › Kilometraje</b>. El Excel se rehace solo con cada cambio: consúltalo, pero los cambios hazlos en la app.</p>
+        </div>
+        <p class="nota" id="od-estado"></p>
+        <div class="fila-botones solo-conectado solo-caducado">
+          <button class="btn btn-peligro btn-peq" id="btn-od-desconectar">Desconectar</button>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h3>Excel</h3>
+        <p class="nota">Descarga una hoja de cálculo con todos los viajes y cobros para enviarla o guardarla.</p>
+        <div class="fila-botones"><button class="btn btn-borde" id="btn-excel">Descargar Excel</button></div>
+      </div>
+
       <div class="tarjeta">
         <h3>Copia de seguridad</h3>
         <p class="nota">Los datos se guardan solo en este móvil. Haz una copia de vez en cuando (por ejemplo, después de cada cobro) y guárdala en Drive o envíatela por correo.</p>
@@ -72,7 +109,7 @@
         <p class="nota" id="ultima-copia"></p>
       </div>
 
-      <p class="pie">Datos guardados en el dispositivo · sin cuentas ni servidores</p>
+      <p class="pie">Datos en tu móvil y, si lo conectas, en tu OneDrive · sin servidores de terceros</p>
     </section>
   </main>
 
@@ -155,6 +192,9 @@
 
   <div class="aviso-flotante" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="config.js"></script>
+  <script src="excel.js"></script>
   <script src="app.js"></script>
+  <script src="onedrive.js"></script>
 </body>
 </html>

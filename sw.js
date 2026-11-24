@@ -1,7 +1,7 @@
 // Guarda la app en el móvil para que funcione sin conexión.
 // Al cambiar cualquier fichero, sube el número de VERSION.
-const VERSION = "km-1";
-const FICHEROS = ["./", "index.html", "estilo.css", "app.js", "manifest.webmanifest", "icono.svg", "icono-192.png", "icono-512.png", "icono-maskable-512.png"];
+const VERSION = "km-2";
+const FICHEROS = ["./", "index.html", "estilo.css", "config.js", "excel.js", "app.js", "onedrive.js", "manifest.webmanifest", "icono.svg", "icono-192.png", "icono-512.png", "icono-maskable-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FICHEROS)).then(() => self.skipWaiting()));
@@ -21,6 +21,7 @@ self.addEventListener("fetch", (e) => {
   e.respondWith(
     fetch(e.request)
       .then((r) => {
+        if (new URL(e.request.url).search) return r; // no guardar la vuelta del inicio de sesión
         const copia = r.clone();
         caches.open(VERSION).then((c) => c.put(e.request, copia));
         return r;

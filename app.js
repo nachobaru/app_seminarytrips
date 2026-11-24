@@ -13,9 +13,10 @@ const TARIFA_INICIAL = 0.3;
 function datosVacios() {
   return {
     version: 1,
-    ajustes: { nombre: "", correo: "", tarifa: TARIFA_INICIAL },
+    ajustes: { nombre: "", correo: "", tarifa: TARIFA_INICIAL, mod: 0 },
     viajes: [],        // { id, fecha:"AAAA-MM-DD", destino, motivo, km, liq: id|null }
     liquidaciones: [], // { id, fecha, viajes:[id], km, tarifa, importe, pagada: fecha|null }
+    borrados: {},      // { id: momento } para sincronizar borrados entre dispositivos
     ultimaCopia: null,
   };
 }
@@ -23,20 +24,29 @@ function datosVacios() {
 function cargar() {
   try {
     const d = JSON.parse(localStorage.getItem(CLAVE));
-    if (d && Array.isArray(d.viajes)) return { ...datosVacios(), ...d, ajustes: { ...datosVacios().ajustes, ...d.ajustes } };
+    if (d && Array.isArray(d.viajes)) return normalizar(d);
   } catch (e) { /* datos dañados o almacenamiento bloqueado */ }
   return datosVacios();
 }
 
-let datos = cargar();
+function normalizar(d) {
+  return { ...datosVacios(), ...d, ajustes: { ...datosVacios().ajustes, ...d.ajustes }, borrados: { ...d.borrados } };
+}
 
-function guardar() {
+let datos = cargar();
+const ahora = () => Date.now();
+
+/** Llama a la sincronización con OneDrive (onedrive.js) tras cada cambio. */
+let alGuardar = () => {};
+
+function guardar(opciones = {}) {
   try {
     localStorage.setItem(CLAVE, JSON.stringify(datos));
   } catch (e) {
     aviso("No se ha podido guardar. Revisa el espacio del móvil.");
   }
   pintar();
+  if (opciones.sincronizar !== false) alGuardar();
 }
 
 const nuevoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -221,6 +231,7 @@ fViaje.addEventListener("submit", (e) => {
     destino: fViaje.destino.value.trim(),
     motivo: fViaje.motivo.value.trim(),
     km: kmNum,
+    mod: ahora(),
   };
   if (editando) Object.assign(editando, campos);
   else datos.viajes.push({ id: nuevoId(), liq: null, ...campos });
@@ -231,6 +242,7 @@ fViaje.addEventListener("submit", (e) => {
 $("#btn-borrar-viaje").addEventListener("click", () => {
   if (!editando || !confirm(`¿Borrar el viaje a ${editando.destino}?`)) return;
   datos.viajes = datos.viajes.filter((v) => v !== editando);
+  datos.borrados[editando.id] = ahora();
   dlgViaje.close();
   guardar();
   aviso("Viaje borrado");
@@ -334,8 +346,9 @@ $("#btn-si-enviado").addEventListener("click", () => {
     tarifa: datos.ajustes.tarifa,
     importe: redondear(total * datos.ajustes.tarifa),
     pagada: null,
+    mod: ahora(),
   };
-  sel.forEach((v) => (v.liq = liq.id));
+  sel.forEach((v) => { v.liq = liq.id; v.mod = liq.mod; });
   datos.liquidaciones.push(liq);
   dlgPedir.close();
   guardar();
@@ -358,18 +371,21 @@ $("#lista-liquidaciones").addEventListener("click", (e) => {
       return;
     case "pagada":
       l.pagada = hoy();
+      l.mod = ahora();
       aviso(`Marcado como pagado: ${euro(l.importe)}`);
       break;
     case "nopagada":
       l.pagada = null;
+      l.mod = ahora();
       break;
     case "reenviar":
       abrirCorreo(viajes, l.tarifa);
       return;
     case "deshacer":
       if (!confirm("¿Anular esta petición? Los viajes vuelven a «pendientes».")) return;
-      viajes.forEach((v) => (v.liq = null));
+      viajes.forEach((v) => { v.liq = null; v.mod = ahora(); });
       datos.liquidaciones = datos.liquidaciones.filter((x) => x !== l);
+      datos.borrados[l.id] = ahora();
       aviso("Petición anulada");
       break;
   }
@@ -380,13 +396,20 @@ $("#lista-liquidaciones").addEventListener("click", (e) => {
 
 /* ---------- Ajustes ---------- */
 
+let esperaAjustes;
+function pintarResumenAjustes() {
+  $("#saludo").textContent = datos.ajustes.nombre ? `Viajes pastorales de ${datos.ajustes.nombre}` : "Viajes pastorales";
+}
 $("#form-ajustes").addEventListener("input", (e) => {
   const f = e.currentTarget;
   const tarifa = parseFloat(String(f.tarifa.value).replace(",", "."));
   datos.ajustes.nombre = f.nombre.value.trim();
   datos.ajustes.correo = f.correo.value.trim();
   if (tarifa >= 0) datos.ajustes.tarifa = tarifa;
-  guardar();
+  datos.ajustes.mod = ahora();
+  clearTimeout(esperaAjustes);
+  esperaAjustes = setTimeout(guardar, 600); // espera a que termines de escribir
+  pintarResumenAjustes();
   $("#estado-guardado").textContent = "Guardado ✓";
 });
 $("#form-ajustes").addEventListener("submit", (e) => e.preventDefault());
@@ -406,7 +429,7 @@ $("#btn-exportar").addEventListener("click", async () => {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     }
-    guardar();
+    guardar({ sincronizar: false });
     aviso("Copia creada");
   } catch (e) {
     datos = cargar(); // compartir cancelado: no anotar la copia
@@ -422,12 +445,52 @@ $("#fichero-importar").addEventListener("change", async (e) => {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.viajes) || !Array.isArray(d.liquidaciones)) throw new Error();
     if (!confirm(`La copia tiene ${d.viajes.length} viajes. Sustituirá a los datos actuales. ¿Seguir?`)) return;
-    datos = { ...datosVacios(), ...d, ajustes: { ...datosVacios().ajustes, ...d.ajustes } };
+    datos = normalizar(d);
     guardar();
     aviso("Copia restaurada");
   } catch (err) {
     aviso("Ese fichero no es una copia válida");
   }
+});
+
+/* ---------- Excel ---------- */
+
+function excelDeDatos() {
+  const liqPorId = new Map(datos.liquidaciones.map((l) => [l.id, l]));
+  const f = (iso) => (iso ? { v: Excel.serieFecha(iso), f: "fecha" } : null);
+  const viajes = [...datos.viajes].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const liqs = [...datos.liquidaciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return Excel.crear([
+    {
+      nombre: "Viajes",
+      anchos: [12, 24, 34, 10, 12, 11, 12, 12],
+      cabecera: ["Fecha", "Destino", "Motivo", "Km", "Importe", "Estado", "Pedido el", "Pagado el"],
+      filas: viajes.map((v) => {
+        const l = liqPorId.get(v.liq);
+        const tarifa = l ? l.tarifa : datos.ajustes.tarifa;
+        return [f(v.fecha), v.destino, v.motivo, { v: v.km, f: "km" }, { v: redondear(v.km * tarifa), f: "euro" },
+          l ? (l.pagada ? "Pagado" : "Pedido") : "Pendiente", f(l?.fecha), f(l?.pagada)];
+      }),
+    },
+    {
+      nombre: "Cobros",
+      anchos: [12, 9, 10, 10, 12, 11, 12],
+      cabecera: ["Pedido el", "Viajes", "Km", "€/km", "Importe", "Estado", "Pagado el"],
+      filas: liqs.map((l) => [f(l.fecha), l.viajes.length, { v: l.km, f: "km" }, { v: l.tarifa, f: "euro" },
+        { v: l.importe, f: "euro" }, l.pagada ? "Pagado" : "Pedido", f(l.pagada)]),
+    },
+  ]);
+}
+
+$("#btn-excel").addEventListener("click", async () => {
+  const nombre = `Kilometraje-${hoy()}.xlsx`;
+  const fichero = new File([excelDeDatos()], nombre, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  try {
+    if (navigator.canShare?.({ files: [fichero] })) return await navigator.share({ files: [fichero], title: "Kilometraje" });
+  } catch (e) { if (e.name === "AbortError") return; }
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(fichero), download: nombre });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 });
 
 /* ---------- Arranque ---------- */
